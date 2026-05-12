@@ -13,7 +13,7 @@ Instead of assuming universal human proportions, the app must capture the specif
 * **Segment Lengths:** Use a guided AR/webcam interface to measure the humerus, radius, femur, and tibia. **Calibration Fallback:** If visual extraction quality is poor (e.g., bad lighting, movement), a fallback interface allows coaches to input precise manual measurements.
 * **Metric Conversion:** The engine samples the relative depth map at each YOLO joint. It then fits a scale factor using the athlete's known limb lengths (e.g., minimizing residuals across the hip-to-knee and knee-to-ankle distances) to output true metric 3D coordinates.
 * **Mass Distribution:** By combining the athlete's total weight with limb circumferences, the app can estimate the mass of individual segments to more accurately calculate the Center of Mass (CM).
-* **Developmental Variation:** Youth gymnasts change rapidly. The system will prompt a re-calibration of the Digital Twin every 3–6 months depending on the athlete's age.
+* **Developmental Variation & Time-Series Triggers:** Youth gymnasts change rapidly. The system will prompt a re-calibration of the Digital Twin every 3–6 months. Additionally, **longitudinal regression detection** acts as an automatic trigger: if an athlete's landing stiffness suddenly regresses after tracking well for weeks, the app will prompt a Digital Twin re-calibration rather than treating it immediately as a technique failure, as the root cause may be a recent growth spurt altering their center of mass.
 
 
 

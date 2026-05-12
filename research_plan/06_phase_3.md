@@ -23,9 +23,45 @@ By integrating external physiological data, the app moves from monitoring moveme
 
 
 
-### 2. Automated Training & Squad Management
+### 2. Longitudinal Time-Series Analytics & Squad Management
 
-This feature addresses the "administrative overload" often cited by athletes and coaches, focusing heavily on **Coach-Side UX** and multi-athlete scenarios.
+By leveraging the raw variance data stored in Phase 1 and 2, the app provides "memory" to coaching, identifying macro-trends that single-session video analysis cannot see.
+
+*
+**Regression Detection**: If a metric that had been improving (like landing knee angle) starts declining, the app flags it. This often signals fatigue, a compensatory habit, or a growth spurt, allowing coaches to intervene early.
+
+*
+**Load-Correlation Analysis**: By combining time-series technique data with Phase 3 wearable HRV data, the system can provide injury-prevention insights, answering questions like: *"Does landing stiffness drop when weekly training volume exceeds 50 repetitions?"*
+
+*
+**Plateau Detection**: If a metric asymptotes (e.g., handstand verticality gains slow to <0.5° per week), the system acts as a workflow prompt, suggesting the coach shift training focus to break the plateau.
+
+### 3. Advanced Longitudinal Features
+
+Building on the raw variance data, Phase 3 implements features categorized by complexity and coaching value.
+
+#### High Value / Low Implementation Cost
+* **Attempt Distribution:** Box plots of each metric per session showing variance across attempts. A wide spread signals inconsistency that averages hide completely.
+* **Fatigue Curve:** Plots metric quality against attempt number within a session. Deterioration at rep 8 vs. rep 20 is a direct load management signal.
+* **Left/Right Symmetry Index:** Tracks asymmetry in arm position, shoulder height, and landing weight distribution over time. A persistent worsening trend is highly diagnostic.
+* **Warm-up vs. Peak Window:** Identifies the timestamp range where each athlete performs best per session, telling coaches the optimal moment to attempt new skills.
+
+#### Medium Complexity / High Coaching Value
+* **Metric Correlation Matrix:** Reveals cross-apparatus trade-offs, such as whether improving pommel amplitude correlates with worse landing stiffness.
+* **Breakout Session Detection:** Auto-flags sessions where multiple metrics simultaneously hit personal bests, surfacing them for parents or selectors.
+* **Competition Readiness Score:** A composite 0–100 score based on metric stability, trend direction, and proximity to targets.
+* **Skill Prerequisite Tracking:** Gates skill progression on data (e.g., handstand verticality $\ge 178^{\circ}$ and symmetry index $\le 3\%$ before introducing a pirouette).
+
+#### Ambitious / Differentiating
+* **Squad Percentile Benchmarks:** Anonymized aggregation across club athletes so an individual can see where they sit vs. peers at the same age and level.
+* **Predicted Peak Window:** Projects when an athlete will likely hit target benchmarks using trajectory slope and historical plateau patterns, useful for competition calendar planning.
+* **Anomaly Attribution:** When a metric drops unexpectedly, automatically surface candidate causes (e.g., rep count increase, HRV decline, or Digital Twin drift from a growth spurt).
+* **Longitudinal PDF Reports:** Auto-generated monthly reports combining charts, highlights, and coach notes. Exportable for national programme selectors or physios.
+
+> **Cross-Cutting Requirement: Video-Linked Drill-Down**
+> All of the above analytics must support "Video-Linked Drill-Down". Tapping any outlier data point must jump directly to that session's video at that specific attempt. Without it, the analysis layer and the video layer are disconnected, and the data loses most of its actionability.
+
+### 4. Squad Management & Logistics
 
 *
 **Squad Management**: Allow a coach to manage a squad of athletes on their laptop. Switching active profiles ensures that tracked metrics are correctly assigned to the athlete currently performing.
@@ -44,7 +80,7 @@ This feature addresses the "administrative overload" often cited by athletes and
 
 
 
-### 3. The Social & Gamification Engine
+### 5. The Social & Gamification Engine
 
 To drive engagement, the app leverages the community aspect of gymnastics while ensuring a secure environment.
 

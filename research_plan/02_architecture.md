@@ -11,7 +11,7 @@ For a high-performance biomechanics application, this architecture leverages the
 Unlike cloud-centric apps that treat the browser or mobile app as a "thin client," a local-first app treats the desktop/laptop as the **Source of Truth**.
 
 *
-**Persistent Local Database:** High-resolution video and biomechanical metrics are stored in local engines like **SQLite** or **Realm** by default.
+**Persistent Local Database:** High-resolution video and biomechanical metrics are stored in local engines like **SQLite** or **Realm** by default. Crucially, the database stores the **raw per-session metric distributions (variance across attempts)**, not just session averages. A gymnast consistently hitting a 68° knee angle is biomechanically different from one averaging 68° across a 55°–80° range.
 
 
 *
