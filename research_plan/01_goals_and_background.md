@@ -6,11 +6,11 @@ To create the "best gymnastics app in the world," the plan must move beyond gene
 
 Generic AI models often assume "average" human proportions, which can lead to a 40% error in predicting joint forces. By integrating a personalized onboarding phase, we can refine the physics accuracy.
 
-### 1. Smartphone-Based 3D Body Scanning
+### 1. 3D Body Scanning & Manual Measurement
 
-* **Method:** Utilize a 60-second "scan" where the athlete takes four photos (front, back, sides).
-* **Extraction:** Automatically extract **80+ measurements**, including specific segment lengths (humerus, femur, torso) and circumferences to estimate **Body Segment Parameters (BSPs)** like mass and radius of gyration.
-* **Impact:** This allows the app to calculate the **exact Center of Mass (CM)** and **Moment of Inertia** for that specific gymnast, rather than using a population average.
+* **Method:** Utilize a 60-second 3D scan (front, back, sides), which is treated as an *enhancement* rather than a strict prerequisite. The app can initially function using population-average Body Segment Parameters (BSPs) and improve over time.
+* **Extraction & Calibration:** Automatically extract measurements, but also allow coaches to **enter real physical measurements manually** to help calibrate and ground-truth the scans.
+* **Impact:** This allows the app to calculate the **exact Center of Mass (CM)** and **Moment of Inertia** for that specific gymnast, rather than relying solely on a population average.
 
 ### 2. Digital Skeleton Personalization
 
@@ -35,14 +35,20 @@ Based on current market gaps and emerging 2026 tech, the following features shou
 ### Phase 0: The "Digital Twin" Onboarding (Months 1–3)
 
 * **Focus:** Biometric measurement and calibration.
-* **Tech:** Integrate a 3D scanning SDK (like 3D Measure Me) to build the athlete's personalized profile.
+* **Tech:** Integrate a 3D scanning SDK to build the athlete's personalized profile, supplemented by coach-entered physical measurements.
 * **Goal:** A "Physics Profile" for every user that stores their unique mass distribution.
+
+### Phase 0.5: Camera Calibration & Placement (Month 3)
+
+* **Focus:** Establishing accurate 3D lifting from 2D video.
+* **Tech:** Implement a checkerboard or apparatus-marker-based homography calibration.
+* **Goal:** Improve 3D lifting accuracy and provide camera placement guidance to ensure optimal keypoint visibility (e.g., front vs. side angles).
 
 ### Phase 1: The Real-Time Biomechanical Core (Months 4–9)
 
-* **Focus:** Edge-native inference with **YOLOv11-pose** via **Transformers.js**.
-* **Tech:** Export YOLO models to ONNX; use WebGPU for browser acceleration to achieve 60 FPS.
-* **Goal:** Live joint-angle tracking calibrated to the athlete's Phase 0 measurements.
+* **Focus:** Desktop/laptop-native inference with **YOLOv11-pose** via **Transformers.js**.
+* **Tech:** Export YOLO models to ONNX; use WebGPU for browser/desktop acceleration.
+* **Goal:** Live joint-angle tracking calibrated to the athlete's Phase 0 measurements and camera setup.
 
 ### Phase 2: The Virtual Judge & Injury Shield (Months 10–15)
 
@@ -62,6 +68,6 @@ Based on current market gaps and emerging 2026 tech, the following features shou
 
 | Component | Reality Check |
 | --- | --- |
-| **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy YOLO-pose models in a browser/PWA at high framerates. |
+| **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy YOLO-pose models on a laptop/desktop browser at optimal framerates. |
 | **YOLO-pose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. |
-| **3D Scanning** | **Privacy Barrier.** You must ensure 100% local processing of body scan images to comply with youth privacy laws (COPPA/GDPR). |
+| **3D Scanning** | **Privacy Barrier.** You must ensure 100% local processing of body scan images on the laptop to comply with youth privacy laws (COPPA/GDPR). |

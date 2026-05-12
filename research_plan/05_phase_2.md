@@ -6,20 +6,20 @@ To expand on **Phase 2**, we move from the raw biomechanical data of Phase 1 to 
 
 The goal is to provide an "instant feedback loop" that tells the athlete not just *how* they moved, but how they would have been *scored*.
 
-### 1. Automated Skill Recognition (ASR)
+### 1. Automated Skill Recognition (ASR) - MVP Scope
 
-While Phase 1 tracks joint angles, Phase 2 identifies the **identity** of the movement.
+While Phase 1 tracks joint angles, Phase 2 identifies the **identity** of the movement. For the initial version, the scope is narrowed to focus on **5-10 high-frequency skills per apparatus** rather than attempting full Code of Points automation immediately.
 
 *
 **Implementation with Transformers.js**: Utilize temporal sequence models (Action Recognition Transformers) to analyze the trajectory of the 3D landmarks over time.
 
 
 *
-**Gymnastics Grammar**: Develop a logic layer that understands the sequence of a routine—identifying specific skills like a "Kasamatsu" on vault or a "Liukin" on high bar.
+**Gymnastics Grammar**: Develop a logic layer that understands the sequence of common high-value routines, ignoring rare elements to minimize the dataset requirements and editorial burden early on.
 
 
 *
-**Element Mapping**: Each recognized skill is mapped to its specific FIG difficulty value (e.g., A-value, D-value).
+**Element Mapping**: Each recognized skill is mapped to its specific FIG difficulty value (e.g., A-value, D-value) using a pared-down local SQLite database that is easier to maintain.
 
 
 
@@ -50,20 +50,20 @@ This feature automates the two components of gymnastics scoring.
 
 
 
-### 3. Proactive Injury Mitigation & Symmetry
+### 3. Training Load & Technique Optimization
 
-Using the personalized skeleton from Phase 0, the app functions as a "digital physical therapist".
+Using the personalized skeleton from Phase 0, the app provides data to help coaches manage technique to optimize physical load, being careful to **avoid medical-adjacent claims**.
 
 *
 **Symmetry Tracking**: The app monitors for "favoritism" of one limb or shoulder during holds like the Iron Cross on Still Rings.
 
 
 *
-**Symmetry Alerts**: Even slight deviations in ring height or arm angle (e.g., asymmetrical shoulder abduction) can trigger alerts for underlying strength imbalances that could lead to chronic injuries like labral tears.
+**Symmetry Insights**: Deviations in ring height or arm angle (e.g., asymmetrical shoulder abduction) provide insights for the coach to assess technique and strength imbalances.
 
 
 *
-**Impact Estimation**: By combining the athlete's calibrated mass with impact velocity, the app estimates ground reaction force (often 7.1–15.8× body weight) to warn of excessive landing stiffness.
+**Impact Estimation**: By combining the athlete's calibrated mass with impact velocity, the app estimates ground reaction force (often 7.1–15.8× body weight) to inform the coach about landing stiffness, allowing them to adjust training load.
 
 
 
@@ -88,11 +88,11 @@ Integrating the FIG Code of Points is ranked as **Medium Feasibility** because i
 ### Summary of Missing Features Added in Phase 2:
 
 *
-**Digital Physical Therapist**: Monitoring symmetry to prevent injury.
+**Training Load Guardian**: Providing insights on landing impacts and symmetry for coaches to manage load.
 
 
 *
-**Dynamic D-Score Tracker**: Real-time summation of routine difficulty.
+**Narrowed D-Score Tracker**: Real-time summation of routine difficulty for top 5-10 elements.
 
 
 *

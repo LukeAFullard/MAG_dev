@@ -23,16 +23,20 @@ By integrating external physiological data, the app moves from monitoring moveme
 
 
 
-### 2. Automated Training Management
+### 2. Automated Training & Squad Management
 
-This feature addresses the "administrative overload" often cited by athletes and coaches.
-
-*
-**Set-and-Forget Rep Counting**: A tripod-mode where the app automatically identifies, logs, and counts every circle, handstand, and somersault performed during a practice session.
-
+This feature addresses the "administrative overload" often cited by athletes and coaches, focusing heavily on **Coach-Side UX** and multi-athlete scenarios.
 
 *
-**Meso-cycle Visualization**: Provide long-term dashboards showing progress in strength (e.g., ring holds) and technical mastery (e.g., circle amplitude) over a 6-month period.
+**Squad Management**: Allow a coach to manage a squad of athletes on their laptop. Switching active profiles ensures that tracked metrics are correctly assigned to the athlete currently performing.
+
+
+*
+**Set-and-Forget Rep Counting**: A webcam/laptop mode where the app automatically identifies, logs, and counts every circle, handstand, and somersault performed during a practice session for the active athlete profile.
+
+
+*
+**Meso-cycle Visualization**: Provide long-term dashboards showing progress in strength (e.g., ring holds) and technical mastery (e.g., circle amplitude) over a 6-month period, aggregated per athlete and sortable by the coach.
 
 
 *
@@ -88,4 +92,4 @@ For high-performance directors and researchers, the app provides deep access to 
 
 ### Final Reality Check
 
-By the end of Phase 3, the application achieves "Market Mastery". It provides a professional-grade technical critique in real-time, manages the athlete's long-term health, and automates the social sharing process—all while keeping the sensitive data on the device.
+By the end of Phase 3, the application achieves "Market Mastery". It provides a professional-grade technical critique in real-time, manages the squad's training load across multiple athletes, and streamlines the coaching process—all while keeping sensitive biometric and performance data secure on the local machine.
