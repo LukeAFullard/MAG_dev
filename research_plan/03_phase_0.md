@@ -10,13 +10,10 @@ By accurately measuring the athlete before they ever touch an apparatus, you sol
 
 Instead of assuming universal human proportions, the app must capture the specific segment lengths of the gymnast. This is critical because the moment of inertia ($I$) is dependent on the mass ($m$) and the square of the distance from the axis of rotation ($r$).
 
-* **Segment Lengths:** Use a guided AR interface to measure the humerus, radius, femur, and tibia.
-*
-**Precision:** These measurements act as "hard constraints" for the 3D lifting engine; the AI will know that a gymnast's forearm cannot physically "stretch" during a high-bar release, significantly reducing joint error.
-
-
-*
-**Mass Distribution:** By combining the athlete's total weight with limb circumferences, the app can estimate the mass of individual segments to more accurately calculate the Center of Mass (CM).
+* **Segment Lengths:** Use a guided AR/webcam interface to measure the humerus, radius, femur, and tibia. **Calibration Fallback:** If visual extraction quality is poor (e.g., bad lighting, movement), a fallback interface allows coaches to input precise manual measurements.
+* **Precision:** These measurements act as "hard constraints" for the 3D lifting engine; the AI will know that a gymnast's forearm cannot physically "stretch" during a high-bar release, significantly reducing joint error.
+* **Mass Distribution:** By combining the athlete's total weight with limb circumferences, the app can estimate the mass of individual segments to more accurately calculate the Center of Mass (CM).
+* **Developmental Variation:** Youth gymnasts change rapidly. The system will prompt a re-calibration of the Digital Twin every 3–6 months depending on the athlete's age.
 
 
 
@@ -44,13 +41,13 @@ The CM is the "anchor" for almost every FIG apparatus, from circular stability o
 
 
 
-### 4. Technical Environment Profiling (NPU/WebGPU Benchmarking)
+### 4. Technical Environment Profiling (GPU/WebGPU Benchmarking)
 
-Since the architecture is "local-first," Phase 0 includes a hardware handshake to ensure the device can handle the workload.
+Since the architecture is "local-first," Phase 0 includes a hardware handshake to ensure the laptop/desktop can handle the workload.
 
-* **NPU/WebGPU Warmup:** The app runs a series of synthetic inference tests using **Transformers.js** to determine if it should prioritize the Nano or Small YOLO-pose model.
+* **GPU/WebGPU Warmup:** The app runs a series of synthetic inference tests using **Transformers.js** to determine if it should prioritize the Nano, Small, or larger YOLO-pose model based on available compute.
 *
-**Efficiency Logging:** It establishes the "Normal" battery and thermal profile for the device to ensure the app doesn't overheat during a 2-hour practice session.
+**Performance Logging:** It establishes the baseline frame rate capacity of the machine to maintain a stable 30-60 FPS for tracking without frame drops.
 
 
 
@@ -66,6 +63,6 @@ This formula is no longer a generic calculation; $m_i$ (segment mass) and $r_i$ 
 
 ### Implementation Step
 
-1. **The "Scan" UI:** Build a 60-second onboarding flow where a parent/coach records the athlete standing in a T-pose and a side profile.
+1. **The "Scan" UI:** Build a 60-second onboarding flow where a parent/coach uses a laptop webcam (or transfers files to it) of the athlete standing in a T-pose and a side profile, with manual override inputs available.
 2. **Local Processing:** Use a lightweight photogrammetry script (WASM-based) to extract lengths.
 3. **Data Lock:** Save these parameters locally; they are never uploaded, ensuring 100% privacy for the young athletes.

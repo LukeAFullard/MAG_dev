@@ -1,14 +1,14 @@
-A **Local-First** data architecture is a design paradigm where the primary copy of application data—and the logic required to process it—resides on the user’s local device rather than a remote server. In this model, the network is treated as an optional synchronization layer rather than a constant requirement for functionality.
+A **Local-First** data architecture is a design paradigm where the primary copy of application data—and the logic required to process it—resides on the user’s local device (specifically, a desktop or laptop computer) rather than a remote server. In this model, the network is treated as an optional synchronization layer rather than a constant requirement for functionality.
 
-For a high-performance biomechanics application, this architecture is a mechanical necessity to ensure sub-millisecond response times and ironclad data privacy.
+For a high-performance biomechanics application, this architecture leverages the superior processing power of laptops/desktops to ensure sub-millisecond response times and ironclad data privacy.
 
 ---
 
 ## Core Pillars of the Architecture
 
-### 1. On-Device Sovereignty & Storage
+### 1. Local Device Sovereignty & Storage
 
-Unlike cloud-centric apps that treat the browser or mobile app as a "thin client," a local-first app treats the device as the **Source of Truth**.
+Unlike cloud-centric apps that treat the browser or mobile app as a "thin client," a local-first app treats the desktop/laptop as the **Source of Truth**.
 
 *
 **Persistent Local Database:** High-resolution video and biomechanical metrics are stored in local engines like **SQLite** or **Realm** by default.
@@ -19,12 +19,12 @@ Unlike cloud-centric apps that treat the browser or mobile app as a "thin client
 
 
 
-### 2. Edge-Native Inference
+### 2. Local Hardware Inference
 
 The "intelligence" of the app—the 3D pose estimation and FIG scoring logic—happens entirely on the local hardware.
 
 *
-**Hardware Acceleration:** The app utilizes the device's **Neural Processing Unit (NPU)** or **GPU** (via WebGPU and Transformers.js) to perform real-time calculations.
+**Hardware Acceleration:** The app utilizes the laptop/desktop's **GPU** (via WebGPU and Transformers.js) to perform real-time calculations without the thermal throttling and power constraints of mobile devices.
 
 
 *
@@ -54,13 +54,13 @@ This architecture serves as a proactive guardian for sensitive environments like
 | **Data Logic** | **WASM / Transformers.js** | Runs complex C++/Python logic at near-native speeds in the browser/client.
 
  |
-| **Inference** | **LiteRT / YOLO-Pose** | Offloads pose estimation to the NPU to prevent device overheating.
+| **Inference** | **ONNX / YOLO-Pose** | Offloads pose estimation to the GPU, taking advantage of desktop-class thermal capacity and compute performance.
 
  |
 | **Storage** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation without cloud APIs.
 
  |
-| **Sync (Optional)** | **CRDTs** | (Conflict-free Replicated Data Types) Allows for syncing data across a phone and tablet without a central master.
+| **Sync (Optional)** | **Local Network Transfer** | Simple QR-code or local network transfer for syncing data (e.g., coach reviews), avoiding the implementation complexity of CRDTs.
 
  |
 
