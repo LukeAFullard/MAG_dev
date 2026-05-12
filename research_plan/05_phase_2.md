@@ -2,13 +2,13 @@ To expand on **Phase 2**, we move from the raw biomechanical data of Phase 1 to 
 
 ---
 
-## Phase 2: FIG Intelligence & The Virtual Judge (Months 7–12)
+## Phase 2: FIG Intelligence & The Virtual Judge (Vision / Multi-Year Effort)
 
-The goal is to provide an "instant feedback loop" that tells the athlete not just *how* they moved, but how they would have been *scored*.
+The long-term goal is to provide an "instant feedback loop" that tells the athlete not just *how* they moved, but how they would have been *scored*. This phase represents a major research-level undertaking that goes beyond the MVP, likely requiring significant funding and a dedicated data science team.
 
-### 1. Automated Skill Recognition (ASR) - MVP Scope
+### 1. Automated Skill Recognition (ASR)
 
-While Phase 1 tracks joint angles, Phase 2 identifies the **identity** of the movement. For the initial version, the scope is narrowed to focus on **5-10 high-frequency skills per apparatus** rather than attempting full Code of Points automation immediately.
+While Phase 1 tracks joint angles, Phase 2 identifies the **identity** of the movement. Automating skill recognition is a research-level problem requiring hundreds of hours of labeled gymnastics video per apparatus.
 
 *
 **Implementation with Transformers.js**: Utilize temporal sequence models (Action Recognition Transformers) to analyze the trajectory of the 3D landmarks over time.
@@ -71,7 +71,7 @@ Using the personalized skeleton from Phase 0, the app provides data to help coac
 
 ## Technical Feasibility: The "Gymnastics Grammar" Challenge
 
-Integrating the FIG Code of Points is ranked as **Medium Feasibility** because it requires extensive data labeling to teach the AI the nuances of every skill.
+Integrating the FIG Code of Points is ranked as a **Multi-Year Research Feasibility** because it requires immense data labeling efforts (hundreds of hours of video per apparatus) to teach the AI the nuances of every skill. It is crucial to view this as a long-term vision, not a short-term product milestone.
 
 | Feature | Tech Used | Local-First Role |
 | --- | --- | --- |
