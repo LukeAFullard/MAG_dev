@@ -19,7 +19,18 @@ Generic AI models often assume "average" human proportions, which can lead to a 
 
 ---
 
-## II. Strategic Feature Expansion (The "Missing" Layer)
+## II. Business & Go-To-Market Layer
+
+To build a viable product, the application must differentiate itself from incumbent video analysis tools (like Dartfish and Hudl) which primarily serve elite, well-funded programs.
+
+* **Target Audience:** Youth gymnastics programs and competitive clubs that lack the budget for elite multi-camera setups or full-time analysts.
+* **Differentiation:**
+    * **Affordability:** Runs on standard laptops/desktops without expensive proprietary hardware.
+    * **Privacy First:** The local-first architecture ensures compliance with youth privacy laws (COPPA/GDPR) by keeping all sensitive video and biometric data on-device.
+    * **Personalized Biometrics:** Unlike generic tools, the system calibrates to the individual athlete's body, providing actionable physics-based feedback rather than just simple video playback.
+* **Monetization:** A tiered SaaS model targeting club programs (B2B), with the core value proposition centered on reducing coach workload and objectively tracking athlete progression and safety (e.g., landing impact).
+
+## III. Strategic Feature Expansion (The "Missing" Layer)
 
 Based on current market gaps and emerging 2026 tech, the following features should be integrated:
 
@@ -30,7 +41,9 @@ Based on current market gaps and emerging 2026 tech, the following features shou
 
 ---
 
-## III. Updated Step-by-Step Development Plan
+## IV. Updated Step-by-Step Development Plan
+
+The plan has been revised to focus on an MVP execution strategy, validating market demand before scaling to complex, multi-year research goals.
 
 ### Phase 0: The "Digital Twin" Onboarding (Months 1–3)
 
@@ -42,21 +55,21 @@ Based on current market gaps and emerging 2026 tech, the following features shou
 
 * **Focus:** Establishing accurate 3D lifting from 2D video.
 * **Tech:** Implement a checkerboard or apparatus-marker-based homography calibration.
-* **Goal:** Improve 3D lifting accuracy and provide camera placement guidance to ensure optimal keypoint visibility (e.g., front vs. side angles).
+* **Goal:** Improve 3D lifting accuracy and provide camera placement guidance to ensure optimal keypoint visibility (e.g., side angles for floor landings).
 
-### Phase 1: The Real-Time Biomechanical Core (Months 4–9)
+### Phase 1: The MVP Execution - Floor Landings (Months 4–6)
 
-* **Focus:** Desktop/laptop-native inference with **YOLOv11-pose** via **Transformers.js**.
+* **Focus:** Desktop/laptop-native inference focused exclusively on Floor landings.
 * **Tech:** Export YOLO models to ONNX; use WebGPU for browser/desktop acceleration.
-* **Goal:** Live joint-angle tracking calibrated to the athlete's Phase 0 measurements and camera setup.
+* **Goal:** Live joint-angle tracking for knee angle at impact. Validate that coaches are willing to pay for this single, high-value capability before expanding.
 
-### Phase 2: The Virtual Judge & Injury Shield (Months 10–15)
+### Phase 2: The Virtual Judge & Vision (Long-term multi-year effort)
 
-* **Focus:** FIG Code of Points integration and safety analytics.
-* **Tech:** Fine-tune models on "extreme" gymnastics datasets to handle self-occlusion.
-* **Goal:** Automated E-Score deductions and "Landing Stiffness" alerts.
+* **Focus:** FIG Code of Points integration, starting with safety analytics.
+* **Tech:** Multi-year dataset labeling and model fine-tuning on "extreme" gymnastics datasets to handle self-occlusion and skill recognition.
+* **Goal:** Automated E-Score deductions, starting as a vision document and graduating to product features over years.
 
-### Phase 3: The Social & Professional Ecosystem (Months 16–24)
+### Phase 3: The Social & Professional Ecosystem (Vision)
 
 * **Focus:** Gamification and external data sync.
 * **Tech:** Integrate HealthKit/Google Fit and Garmin APIs.

@@ -6,12 +6,12 @@ By accurately measuring the athlete before they ever touch an apparatus, you sol
 
 ## Phase 0: The Digital Twin & Biomechanical Calibration
 
-### 1. Biometric Segment Mapping
+### 1. Biometric Segment Mapping: The Metric Anchor
 
-Instead of assuming universal human proportions, the app must capture the specific segment lengths of the gymnast. This is critical because the moment of inertia ($I$) is dependent on the mass ($m$) and the square of the distance from the axis of rotation ($r$).
+Instead of assuming universal human proportions, the app must capture the specific segment lengths of the gymnast. **This step is structurally necessary for the depth pipeline.** While models like Depth Anything provide *relative* depth, the Digital Twin provides the metric ground truth.
 
 * **Segment Lengths:** Use a guided AR/webcam interface to measure the humerus, radius, femur, and tibia. **Calibration Fallback:** If visual extraction quality is poor (e.g., bad lighting, movement), a fallback interface allows coaches to input precise manual measurements.
-* **Precision:** These measurements act as "hard constraints" for the 3D lifting engine; the AI will know that a gymnast's forearm cannot physically "stretch" during a high-bar release, significantly reducing joint error.
+* **Metric Conversion:** The engine samples the relative depth map at each YOLO joint. It then fits a scale factor using the athlete's known limb lengths (e.g., minimizing residuals across the hip-to-knee and knee-to-ankle distances) to output true metric 3D coordinates.
 * **Mass Distribution:** By combining the athlete's total weight with limb circumferences, the app can estimate the mass of individual segments to more accurately calculate the Center of Mass (CM).
 * **Developmental Variation:** Youth gymnasts change rapidly. The system will prompt a re-calibration of the Digital Twin every 3–6 months depending on the athlete's age.
 

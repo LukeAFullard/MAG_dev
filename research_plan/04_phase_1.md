@@ -2,30 +2,27 @@ Phase 1 shifts from the static calibration of Phase 0 to **dynamic, real-time bi
 
 ---
 
-## Phase 1: The Biomechanical Core (Months 4–9)
+## Phase 1: MVP Execution - Floor Landings (Months 4–6)
 
-The primary goal of this phase is to transform raw video into a "Live Biomechanical Layer" that provides immediate technical feedback to the athlete.
+The primary goal of this phase is to transform raw video into a "Live Biomechanical Layer" that provides immediate technical feedback to the athlete, focused strictly on a single, high-value MVP.
 
-### 1. Real-Time Inference Engine: YOLO26-Pose & WebGPU
+### 1. Real-Time Inference Engine: YOLO-Pose + Depth Anything
 
 To achieve the 30-60 FPS performance required for gymnastics analysis without overheating, the app will utilize the latest models running on a laptop or desktop environment.
 
-* **Baseline Model Benchmark:** The *first task* of Phase 1 is to evaluate pre-fine-tuned accuracy on severe gymnastics poses (e.g., handstands, release moves, pommel circles). Standard COCO-trained models often fail on these non-upright orientations.
-* **Model Selection**: Deploying **YOLO26-Pose (Nano/Small)** via **Transformers.js (v4.2)**. This model is natively NMS-free (Non-Maximum Suppression), reducing latency significantly on laptop GPUs and maintaining high accuracy for the 17-33 keypoints required.
+* **Model Selection**: Deploying **YOLO26-Pose (Nano/Small)** via **Transformers.js (v4.2)** for 2D keypoint extraction.
+* **The Z-Axis Pipeline**: Running **Depth Anything v2 (Small)** concurrently to generate a relative depth map.
+* **Performance Optimization**: Running both models at 30fps will stress even modern laptop GPUs. The engine will run depth estimation every 3–5 frames and interpolate the joint depth between frames using the pose tracking trajectory, as the depth map doesn't change fast enough to require per-frame inference.
 * **WebGPU Acceleration**: Utilizing the WebGPU runtime in Transformers.js to perform on-device inference, ensuring that sensitive athlete data remains local and avoids cloud processing costs.
-* **Synthetic Fine-Tuning**: Training the model on gymnastics-specific datasets to handle "extreme" and "self-occluded" poses where standard models typically fail.
+* **Synthetic Fine-Tuning**: Training the YOLO model on gymnastics-specific datasets to handle "extreme" and "self-occluded" poses where standard models typically fail.
 
-### 2. Apparatus-Specific Metric Modules
+### 2. Apparatus-Specific MVP: Floor Landings
 
-The core intelligence will be modularized based on the six FIG apparatus to provide targeted feedback.
+The core intelligence will initially focus exclusively on the Floor apparatus to build the MVP. Monocular 3D estimation is most viable here when recorded from a side-view camera.
 
-| Apparatus | Implementation Logic | Key Target/Benchmark |
-| --- | --- | --- |
-| **Floor** | Tracks "landing stiffness" by calculating the minimum knee angle during impact. | **Target:** $< 63^{\circ}$ at maximum center of mass (CM) displacement. |
-| **Pommel Horse** | Measures circular amplitude using the horizontal Head-Toe Distance (HTDh). | **Target:** Maintain maximum amplitude over 50+ repetitions. |
-| **Vault** | High-speed tracking of the "flight parabola" and board/table contact time. | **Target:** Table contact time $\approx 0.26\text{s}$; maximize CM height. |
-| **Still Rings** | Monitors shoulder abduction symmetry to detect strength imbalances or injury risk. | **Target:** $90^{\circ}$ symmetrical hold for elements like the Iron Cross. |
-| **P-Bars / High Bar** | Calculates angular momentum and release timing using the "moment of inertia" formula. | **Target:** $180^{\circ}$ verticality on handstands; optimized release velocity. |
+*   **Floor Landings:** Tracks "landing stiffness" by calculating the minimum knee angle during impact.
+    *   **Target:** $< 63^{\circ}$ at maximum center of mass (CM) displacement.
+    *   **Validation:** Coaches intensely care about landing stiffness (for safety and scoring). We must validate that clubs are willing to pay for this single capability before building out Pommel Horse, Vault, Still Rings, P-Bars, and High Bar.
 
 ### 3. The "Slow-Motion Player" & Live AR Overlay
 
@@ -42,4 +39,4 @@ Visualization is the bridge between data and coaching.
 
 ### Realistic Milestone
 
-By the end of Month 9, the app should be a functional "Personal Lab" where a coach can set up a webcam or transfer video to their laptop and receive an immediate post-routine breakdown of their **landing stiffness**, **vault height**, and **circular amplitude** without any manual annotation.
+By the end of Month 6, the app should be a functional "Personal Lab" where a coach can set up a webcam or transfer video to their laptop and receive an immediate post-routine breakdown of their **landing stiffness** on Floor routines, without any manual annotation. This provides the core value proposition for paid validation.

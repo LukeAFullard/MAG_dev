@@ -28,6 +28,10 @@ The "intelligence" of the app—the 3D pose estimation and FIG scoring logic—h
 
 
 *
+**Monocular 3D Reconstruction Challenges & The Depth Map Solution:** Lifting 2D video into 3D space from a single camera introduces significant depth ambiguity. To solve this, the architecture integrates a Depth Map model (e.g., **Depth Anything v2**) to generate per-pixel relative depth. Combined with YOLO-pose keypoints, this converts 2D (x, y) landmarks into 3D (x, y, z_relative) coordinates. The Phase 0 biometric profiling is then used to convert this relative scale into true metric coordinates. Note: this still struggles with heavy motion blur in explosive movements (e.g., vault flight).
+
+
+*
 **Zero Latency:** Because data doesn't travel to a server and back, the athlete receives immediate feedback (e.g., an audio "ping" upon hitting a vertical handstand) while still on the apparatus.
 
 
@@ -54,7 +58,10 @@ This architecture serves as a proactive guardian for sensitive environments like
 | **Data Logic** | **WASM / Transformers.js** | Runs complex C++/Python logic at near-native speeds in the browser/client.
 
  |
-| **Inference** | **ONNX / YOLO-Pose** | Offloads pose estimation to the GPU, taking advantage of desktop-class thermal capacity and compute performance.
+| **Inference (Pose)** | **ONNX / YOLO-Pose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently.
+
+ |
+| **Inference (Depth)**| **Depth Anything v2** | Generates relative depth maps to provide the critical Z-axis signal.
 
  |
 | **Storage** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation without cloud APIs.
