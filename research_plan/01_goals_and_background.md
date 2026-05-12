@@ -6,10 +6,10 @@ To create the "best gymnastics app in the world," the plan must move beyond gene
 
 Generic AI models often assume "average" human proportions, which can lead to a 40% error in predicting joint forces. By integrating a personalized onboarding phase, we can refine the physics accuracy.
 
-### 1. 3D Body Scanning & Manual Measurement
+### 1. Manual Measurement & 3D Body Scanning (Phase 2 Enhancement)
 
-* **Method:** Utilize a 60-second 3D scan (front, back, sides), which is treated as an *enhancement* rather than a strict prerequisite. The app can initially function using population-average Body Segment Parameters (BSPs) and improve over time.
-* **Extraction & Calibration:** Automatically extract measurements, but also allow coaches to **enter real physical measurements manually** to help calibrate and ground-truth the scans.
+* **Method:** The primary and most reliable path is **manual physical measurement** (a coach with a tape measure). A 60-second 3D scan (front, back, sides) from a laptop webcam is framed as a *Phase 2 enhancement*, as consumer-grade monocular photogrammetry is unreliable without controlled lighting and calibration targets.
+* **Extraction & Calibration:** Coaches **enter real physical measurements manually** to ground-truth the physics engine. In Phase 2, automated extraction from scans will be introduced as a supplemental enhancement.
 * **Impact:** This allows the app to calculate the **exact Center of Mass (CM)** and **Moment of Inertia** for that specific gymnast, rather than relying solely on a population average.
 
 ### 2. Digital Skeleton Personalization
@@ -47,8 +47,8 @@ The plan has been revised to focus on an MVP execution strategy, validating mark
 
 ### Phase 0: The "Digital Twin" Onboarding (Months 1–3)
 
-* **Focus:** Biometric measurement and calibration.
-* **Tech:** Integrate a 3D scanning SDK to build the athlete's personalized profile, supplemented by coach-entered physical measurements.
+* **Focus:** Biometric measurement and calibration via manual entry.
+* **Tech:** Implement a simple UX for coaches to input precise physical measurements (limb lengths, weight) to build the athlete's personalized profile. 3D scanning SDK integration is deferred to Phase 2.
 * **Goal:** A "Physics Profile" for every user that stores their unique mass distribution.
 
 ### Phase 0.5: Camera Calibration & Placement (Month 3)
@@ -63,11 +63,11 @@ The plan has been revised to focus on an MVP execution strategy, validating mark
 * **Tech:** Export YOLO models to ONNX; use WebGPU for browser/desktop acceleration.
 * **Goal:** Live joint-angle tracking for knee angle at impact. Validate that coaches are willing to pay for this single, high-value capability before expanding.
 
-### Phase 2: The Virtual Judge & Vision (Long-term multi-year effort)
+### Phase 2: Execution Deductions & Load Optimization (Months 7–12)
 
-* **Focus:** FIG Code of Points integration, starting with safety analytics.
-* **Tech:** Multi-year dataset labeling and model fine-tuning on "extreme" gymnastics datasets to handle self-occlusion and skill recognition.
-* **Goal:** Automated E-Score deductions, starting as a vision document and graduating to product features over years.
+* **Focus:** FIG Code of Points integration (Execution only) and training load management.
+* **Tech:** Expanding the Phase 1 physics engine to evaluate other rulesets (e.g., knee angle, toe point).
+* **Goal:** Automated E-Score deductions and long-term technique insights.
 
 ### Phase 3: The Social & Professional Ecosystem (Vision)
 
@@ -83,4 +83,4 @@ The plan has been revised to focus on an MVP execution strategy, validating mark
 | --- | --- |
 | **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy YOLO-pose models on a laptop/desktop browser at optimal framerates. |
 | **YOLO-pose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. |
-| **3D Scanning** | **Privacy Barrier.** You must ensure 100% local processing of body scan images on the laptop to comply with youth privacy laws (COPPA/GDPR). |
+| **3D Scanning** | **Reliability Barrier.** Consumer-grade monocular photogrammetry is unreliable. Manual entry is the default; 3D scanning is deferred to Phase 2, and must ensure 100% local processing of body scan images on the laptop to comply with youth privacy laws (COPPA/GDPR). |

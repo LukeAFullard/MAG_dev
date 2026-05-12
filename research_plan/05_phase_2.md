@@ -2,34 +2,13 @@ To expand on **Phase 2**, we move from the raw biomechanical data of Phase 1 to 
 
 ---
 
-## Phase 2: FIG Intelligence & The Virtual Judge (Vision / Multi-Year Effort)
+## Phase 2: Execution Deductions & Load Optimization
 
-The long-term goal is to provide an "instant feedback loop" that tells the athlete not just *how* they moved, but how they would have been *scored*. This phase represents a major research-level undertaking that goes beyond the MVP, likely requiring significant funding and a dedicated data science team.
+Phase 2 moves beyond raw biomechanical data by introducing automated execution deductions (E-Score) based on the FIG Code of Points and detailed training load insights. **Note: Automated Skill Recognition (ASR) and D-Score calculation are considered long-term research and have been moved to the Vision Appendix.**
 
-### 1. Automated Skill Recognition (ASR)
+### 1. The Virtual Judge: E-Score Deductions
 
-While Phase 1 tracks joint angles, Phase 2 identifies the **identity** of the movement. Automating skill recognition is a research-level problem requiring hundreds of hours of labeled gymnastics video per apparatus.
-
-*
-**Implementation with Transformers.js**: Utilize temporal sequence models (Action Recognition Transformers) to analyze the trajectory of the 3D landmarks over time.
-
-
-*
-**Gymnastics Grammar**: Develop a logic layer that understands the sequence of common high-value routines, ignoring rare elements to minimize the dataset requirements and editorial burden early on.
-
-
-*
-**Element Mapping**: Each recognized skill is mapped to its specific FIG difficulty value (e.g., A-value, D-value) using a pared-down local SQLite database that is easier to maintain.
-
-
-
-### 2. The Virtual Judge: D-Score and E-Score
-
-This feature automates the two components of gymnastics scoring.
-
-*
-**D-Score (Difficulty)**: The app automatically sums the difficulty values of recognized elements to calculate the start value of a routine as it is performed.
-
+This feature automates the objective execution component of gymnastics scoring.
 
 *
 **E-Score (Execution)**: The AI identifies objective technical errors that trigger deductions:
@@ -47,10 +26,7 @@ This feature automates the two components of gymnastics scoring.
 **Verticality**: Measures the exact angle of handstands on High Bar or P-Bars, flagging deductions for being under the vertical (180°).
 
 
-
-
-
-### 3. Training Load & Technique Optimization
+### 2. Training Load & Technique Optimization
 
 Using the personalized skeleton from Phase 0, the app provides data to help coaches manage technique to optimize physical load, being careful to **avoid medical-adjacent claims**.
 
@@ -69,30 +45,18 @@ Using the personalized skeleton from Phase 0, the app provides data to help coac
 
 ---
 
-## Technical Feasibility: The "Gymnastics Grammar" Challenge
+## Technical Feasibility: Execution Validation
 
-Integrating the FIG Code of Points is ranked as a **Multi-Year Research Feasibility** because it requires immense data labeling efforts (hundreds of hours of video per apparatus) to teach the AI the nuances of every skill. It is crucial to view this as a long-term vision, not a short-term product milestone.
+Integrating objective FIG Code of Points deductions is highly feasible because it relies on the same angle tracking used in Phase 1 MVP, but applied to new rulesets.
 
 | Feature | Tech Used | Local-First Role |
 | --- | --- | --- |
-| **Skill ID** | **Transformers.js** | Sequence classification happens on-device; no video leaves the phone.
+| **Deduction Engine** | **Physics Engine** | Calculates angles in real-time to provide immediate "E-Score" feedback. |
 
- |
-| **Deduction Engine** | **Physics Engine** | Calculates angles in real-time to provide immediate "E-Score" feedback.
-
- |
-| **FIG Database** | **SQLite** | A local, searchable version of the Code of Points for instant difficulty lookups.
-
- |
-
-### Summary of Missing Features Added in Phase 2:
+### Summary of Features in Phase 2:
 
 *
 **Training Load Guardian**: Providing insights on landing impacts and symmetry for coaches to manage load.
-
-
-*
-**Narrowed D-Score Tracker**: Real-time summation of routine difficulty for top 5-10 elements.
 
 
 *

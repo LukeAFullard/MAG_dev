@@ -10,8 +10,8 @@ By accurately measuring the athlete before they ever touch an apparatus, you sol
 
 Instead of assuming universal human proportions, the app must capture the specific segment lengths of the gymnast. **This step is structurally necessary for the depth pipeline.** While models like Depth Anything provide *relative* depth, the Digital Twin provides the metric ground truth.
 
-* **Segment Lengths:** Use a guided AR/webcam interface to measure the humerus, radius, femur, and tibia. **Calibration Fallback:** If visual extraction quality is poor (e.g., bad lighting, movement), a fallback interface allows coaches to input precise manual measurements.
-* **Metric Conversion:** The engine samples the relative depth map at each YOLO joint. It then fits a scale factor using the athlete's known limb lengths (e.g., minimizing residuals across the hip-to-knee and knee-to-ankle distances) to output true metric 3D coordinates.
+* **Segment Lengths:** The primary and most reliable path is for coaches to input precise manual measurements (e.g., using a tape measure for humerus, radius, femur, and tibia). Consumer-grade webcam 3D scanning is considered a Phase 2 enhancement due to reliability issues without controlled lighting or calibration targets.
+* **Metric Conversion:** The engine samples the relative depth map at each YOLO joint. It then fits a scale factor using the athlete's known, manually entered limb lengths (e.g., minimizing residuals across the hip-to-knee and knee-to-ankle distances) to output true metric 3D coordinates.
 * **Mass Distribution:** By combining the athlete's total weight with limb circumferences, the app can estimate the mass of individual segments to more accurately calculate the Center of Mass (CM).
 * **Developmental Variation & Time-Series Triggers:** Youth gymnasts change rapidly. The system will prompt a re-calibration of the Digital Twin every 3–6 months. Additionally, **longitudinal regression detection** acts as an automatic trigger: if an athlete's landing stiffness suddenly regresses after tracking well for weeks, the app will prompt a Digital Twin re-calibration rather than treating it immediately as a technique failure, as the root cause may be a recent growth spurt altering their center of mass.
 
@@ -63,6 +63,5 @@ This formula is no longer a generic calculation; $m_i$ (segment mass) and $r_i$ 
 
 ### Implementation Step
 
-1. **The "Scan" UI:** Build a 60-second onboarding flow where a parent/coach uses a laptop webcam (or transfers files to it) of the athlete standing in a T-pose and a side profile, with manual override inputs available.
-2. **Local Processing:** Use a lightweight photogrammetry script (WASM-based) to extract lengths.
-3. **Data Lock:** Save these parameters locally; they are never uploaded, ensuring 100% privacy for the young athletes.
+1. **The Manual Input UI:** Build a simple, intuitive onboarding flow where a coach enters manual physical measurements (limb lengths, weight) with clear diagrams showing where to measure. 3D scanning is deferred to Phase 2.
+2. **Data Lock:** Save these parameters locally; they are never uploaded, ensuring 100% privacy for the young athletes.
