@@ -6,14 +6,14 @@ This document outlines the sequential step-by-step implementation plan for the M
 *Before writing production code, these business and licensing blockers must be resolved.*
 
 - [ ] **1.1. Validate Market & UX:** Conduct user discovery with 15-20 club coaches and build a no-code UX prototype (Figma) for the core session workflow. *(Ref: Feasibility Audit)*
-- [x] **1.2. Resolve Pose Licensing:** Finalize the switch from YOLO-Pose to RTMPose (Apache 2.0) or budget for an Ultralytics Enterprise License. *(Ref: 11_license_audit.md - Critical Issues First)*
-- [x] **1.3. Resolve Depth Licensing:** Confirm the use of Depth Anything V2 Small (Apache 2.0) or MiDaS v2.1 Small (MIT). Seek legal review on training data provenance if needed. *(Ref: 11_license_audit.md - Critical Issues First)*
-- [ ] **1.4. Resolve FFmpegKit Licensing (Mobile):** Verify App Store compliance for the LGPL build of FFmpegKit or design an AVFoundation/MediaCodec alternative. *(Ref: 11_license_audit.md - Watch-List Items)*
+- [x] **1.2. Resolve Pose Licensing:** Finalize the switch from YOLO-Pose to RTMPose/RTMW (Apache 2.0). *(Ref: 13_model_updates_2025.md)*
+- [x] **1.3. Resolve Depth Licensing:** Confirm the use of Depth Anything 3 Small (Apache 2.0). *(Ref: 13_model_updates_2025.md)*
+- [x] **1.4. Resolve FFmpegKit Licensing (Mobile):** Verify App Store compliance for the LGPL build of FFmpegKit or design an AVFoundation/MediaCodec alternative. *(Ref: 12_ffmpeg_resolution.md)*
 
 ## Group 2: Architecture & Foundation (Desktop-First)
 *Setting up the local-first environment and core processing pipeline.*
 
-- [ ] **2.1. Initialize Desktop-First Environment:** Set up a local-first web/desktop wrapper (e.g., Electron or local web server) optimized for laptop usage. *(Ref: 01_goals_and_background.md - Differentiation)*
+- [x] **2.1. Initialize Desktop-First Environment:** Set up a local-first web/desktop wrapper (e.g., Electron or local web server) optimized for laptop usage. *(Ref: 01_goals_and_background.md - Differentiation)*
 - [ ] **2.2. Setup Local Database & Storage Lifecycle:** Implement a local database (SQLite or Realm) to store raw per-session metric distributions and athlete metadata. Implement automated pruning policies for high-framerate video. *(Ref: 02_architecture.md - Local Device Sovereignty)*
 - [ ] **2.3. Implement WASM/WebGPU Inference Engine:** Integrate Transformers.js with WebGPU support for local inference execution. *(Ref: 02_architecture.md - Technical Stack)*
 - [ ] **2.4. Establish the 3-Pass Processing Pipeline:** Scaffold the asynchronous workflow architecture:
