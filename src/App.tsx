@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { initDb, addAthlete, getAthletes, pruneOldVideos } from './db';
 import { InferenceEngine } from './inference';
+import { PipelineManager, type VideoProcessingJob } from './pipeline';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -8,6 +9,7 @@ const App: React.FC = () => {
   const [newAthleteName, setNewAthleteName] = useState('');
   const [inferenceStatus, setInferenceStatus] = useState<string>('Initializing...');
   const [isWebGPU, setIsWebGPU] = useState<boolean | null>(null);
+  const [jobs, setJobs] = useState<VideoProcessingJob[]>([]);
 
   useEffect(() => {
     async function setup() {
@@ -30,6 +32,21 @@ const App: React.FC = () => {
       } catch (err: any) {
         setInferenceStatus(`Error: ${err.message}`);
       }
+
+      // Setup Pipeline Manager
+      const pipeline = PipelineManager.getInstance();
+      pipeline.setOnJobUpdate((updatedJob) => {
+        setJobs(prevJobs => {
+          const index = prevJobs.findIndex(j => j.id === updatedJob.id);
+          if (index >= 0) {
+            const newJobs = [...prevJobs];
+            newJobs[index] = updatedJob;
+            return newJobs;
+          }
+          return [...prevJobs, updatedJob];
+        });
+      });
+      setJobs(pipeline.getAllJobs());
     }
     setup();
   }, []);
@@ -45,6 +62,11 @@ const App: React.FC = () => {
     await addAthlete(newAthleteName);
     setNewAthleteName('');
     await fetchAthletes();
+  };
+
+  const handleSimulateVideo = () => {
+    const pipeline = PipelineManager.getInstance();
+    pipeline.startJob(`demo_video_${Date.now()}.mp4`);
   };
 
   return (
@@ -64,7 +86,7 @@ const App: React.FC = () => {
               This is the initial scaffold for the local-first gymnastics video analysis application.
               From here, we will implement the 3-pass processing pipeline and local storage.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="border border-blue-200 rounded p-4 bg-blue-50">
                 <h3 className="font-bold text-blue-800">Pass 1: Auto-Clip</h3>
                 <p className="text-sm text-blue-600 italic">Immediate motion detection and trimming.</p>
@@ -73,6 +95,38 @@ const App: React.FC = () => {
                 <h3 className="font-bold text-green-800">Pass 2: Pose Analysis</h3>
                 <p className="text-sm text-green-600 italic">Background skeletal tracking and COM extraction.</p>
               </div>
+              <div className="border border-purple-200 rounded p-4 bg-purple-50">
+                <h3 className="font-bold text-purple-800">Pass 3: Smoothing & Metrics</h3>
+                <p className="text-sm text-purple-600 italic">Constraint engine and metric calculations.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Pipeline Simulator</h2>
+            <button
+              onClick={handleSimulateVideo}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mb-4"
+              data-testid="simulate-video-btn"
+            >
+              Simulate Video Drop
+            </button>
+            <div className="space-y-4">
+              {jobs.map(job => (
+                <div key={job.id} className="border p-4 rounded-lg bg-gray-50 shadow-sm" data-testid="job-item">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-semibold">{job.filename}</span>
+                    <span className="text-sm px-2 py-1 rounded bg-gray-200 font-mono">{job.status}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                    <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${job.progress}%` }}></div>
+                  </div>
+                  <p className="text-sm text-gray-600">{job.message}</p>
+                </div>
+              ))}
+              {jobs.length === 0 && (
+                <p className="text-gray-500 italic">No videos currently processing.</p>
+              )}
             </div>
           </div>
 
