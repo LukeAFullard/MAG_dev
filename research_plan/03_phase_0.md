@@ -34,7 +34,7 @@ Instead of deep, medical-grade biometric scanning, the app establishes basic rul
 
 Since the architecture is "local-first," Phase 0 still includes a hardware handshake to ensure the laptop/desktop can handle the real-time processing workload.
 
-* **GPU/WebGPU Warmup:** The app runs a series of synthetic inference tests using **Transformers.js** to determine if it should prioritize the Nano, Small, or larger YOLO-pose model based on available compute.
+* **GPU/WebGPU Warmup:** The app runs a series of synthetic inference tests using **Transformers.js** to determine if it should prioritize the Nano, Small, or larger RTMPose model based on available compute.
 * **Performance Logging:** It establishes the baseline frame rate capacity of the machine to maintain a stable, high FPS for auto-clipping and tracking without dropping frames.
 
 ---

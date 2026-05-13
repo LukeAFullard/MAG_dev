@@ -28,7 +28,7 @@ The "intelligence" of the app—auto clip detection, pose tracking, and depth st
 
 
 *
-**The Role of Depth Sensing (Stabilization, Not Metric Reconstruction):** Lifting 2D video into 3D space from a single camera introduces significant depth ambiguity. Instead of trying to use depth for exact metric distances (which is unreliable), the architecture integrates a Depth Map model (e.g., **Depth Anything v2**) to provide **relative geometry and stabilization**. It is used to:
+**The Role of Depth Sensing (Stabilization, Not Metric Reconstruction):** Lifting 2D video into 3D space from a single camera introduces significant depth ambiguity. Instead of trying to use depth for exact metric distances (which is unreliable), the architecture integrates a Depth Map model (e.g., **Depth Anything v2 Small** or **MiDaS v2.1 Small**) to provide **relative geometry and stabilization**. It is used to:
     * Reduce joint jitter and improve temporal consistency.
     * Separate limbs from the background (handling occlusion).
     * Determine approximate relative body configurations (e.g., are knees in front of the torso?).
@@ -60,9 +60,9 @@ This architecture serves as a proactive guardian for sensitive environments like
 | Layer | Technology | Role in Local-First |
 | --- | --- | --- |
 | **Data Logic** | **WASM / Transformers.js** | Runs complex logic (like temporal smoothing algorithms) at near-native speeds in the browser/client. |
-| **Inference (Pose)** | **ONNX / YOLO-Pose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently. |
-| **Inference (Depth)**| **Depth Anything v2** | Generates relative depth maps used for multi-frame depth stabilization and occlusion handling. |
-| **Storage & Video** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation (auto-clipping) without cloud APIs. |
+| **Inference (Pose)** | **ONNX / RTMPose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently. |
+| **Inference (Depth)**| **Depth Anything V2 Small** | Generates relative depth maps used for multi-frame depth stabilization and occlusion handling. (Must be Small model to comply with Apache 2.0 license). |
+| **Storage & Video** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation (auto-clipping) without cloud APIs. (Note: use LGPL version, never `--enable-gpl`). |
 | **Sync (Optional)** | **Local Network Transfer** | Simple QR-code or local network transfer for syncing data (e.g., sharing a session to another coach's device). |
 
 ## Why it Matters for Gymnastics

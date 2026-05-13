@@ -64,7 +64,7 @@ The plan has been completely revised to focus on reliability, speed, and usabili
 
 | Component | Reality Check |
 | --- | --- |
-| **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy YOLO-pose and tracking models on a laptop/desktop browser at optimal framerates. |
-| **YOLO-pose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. |
+| **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy pose and tracking models on a laptop/desktop browser at optimal framerates. |
+| **RTMPose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. Replaces YOLO-Pose due to AGPL-3.0 licensing issues. |
 | **Monocular Depth** | **Re-scoped.** Used strictly for relative geometry, motion assistance, and consistency enhancement—not for extracting exact real-world distances or forces. |
 | **Auto Clip Detection** | **Highly Feasible.** Can be reliably achieved using pose velocity, bounding boxes, and simple motion thresholds without needing "perfect AI." |
