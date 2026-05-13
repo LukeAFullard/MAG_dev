@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAG_dev Hardware Profiler (WebGPU Benchmark)</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .log-container { background: #f5f5f5; border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; }
+        .status { font-weight: bold; margin-top: 10px; }
+        .success { color: green; }
+        .warning { color: orange; }
+        .error { color: red; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>MAG_dev Hardware Profiler</h1>
+    <p>This tool verifies WebGPU support and benchmarks your device using Transformers.js to determine the optimal model size for local processing.</p>
+
+    <div style="margin-bottom: 20px;">
+        <button id="start-btn">Run Benchmark</button>
+    </div>
+
+    <div>
+        <h3>System Status</h3>
+        <p id="webgpu-status">WebGPU Status: Checking...</p>
+    </div>
+
+    <div>
+        <h3>Log Output</h3>
+        <div id="log" class="log-container"></div>
+    </div>
+
+    <script type="module" src="./benchmark_webgpu.js"></script>
+</body>
+</html>

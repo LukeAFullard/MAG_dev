@@ -10,6 +10,7 @@ To ensure that side-by-side comparisons and trajectory tracking are consistent, 
 
 * **Perspective Estimation:** A zero-friction, one-button "Calibrate Floor" workflow designed for non-technical coaches (e.g., automatically established by having the gymnast stand still for a second or detecting a simple ball drop). The app uses this to estimate the camera's perspective relative to the ground plane without requiring a complex multi-step tapping workflow.
 * **Apparatus Anchors:** Utilizing the known, fixed geometry of apparatuses (e.g., floor is planar, vault table height is fixed, high bar location is constant).
+* **Calibration Fail-safes:** The system will monitor the background to detect accidental camera bumps or movement mid-session. If significant movement is detected, it triggers a "Re-calibration Alert" or attempts automatic recovery to ensure subsequent metrics are not skewed.
 * **Benefits:** This greatly improves scale consistency across different days, enhances landing plane estimation, and makes trajectory tracking much more reliable than trying to infer scale blindly.
 
 ### 2. Encouraging Controlled Capture
@@ -30,7 +31,15 @@ Instead of deep, medical-grade biometric scanning, the app establishes basic rul
 * **Motion Continuity:** Using optimization algorithms to enforce realistic, continuous motion, preventing the tracked joints from "teleporting."
 * **Landing Plane Alignment:** Calibrating the estimated floor plane so the system knows where the gymnast's feet should stop.
 
-### 4. Technical Environment Profiling (GPU/WebGPU Benchmarking)
+### 4. Ground Truth Validation & Dataset Preparation
+
+Before deploying consistency scoring models, the team must establish a benchmark for accuracy.
+
+* **Gold Standard Dataset:** Collect a small dataset (e.g., 100-200 attempts) of varied gymnastics skills, annotated and graded by expert human judges.
+* **Metric Correlation:** Use this gold standard to validate that the AI's relative "consistency scores" and landing analysis correlate accurately with human-perceived performance quality.
+* **Ongoing Benchmarking:** This dataset will be used in a CI/CD pipeline to ensure new iterations of the pose or depth models do not regress in tracking accuracy for inverted or rotated poses.
+
+### 5. Technical Environment Profiling (GPU/WebGPU Benchmarking)
 
 Since the architecture is "local-first," Phase 0 still includes a hardware handshake to ensure the laptop/desktop can handle the real-time processing workload.
 
@@ -39,8 +48,10 @@ Since the architecture is "local-first," Phase 0 still includes a hardware hands
 
 ---
 
-### Implementation Step
+### Implementation Steps
 
 1. **Capture Onboarding UI:** Build a simple, intuitive onboarding flow that guides coaches on camera placement, tripod usage, and lighting.
 2. **Calibration Tool:** Build a frictionless, one-button "Calibrate Floor" tool that uses a simple reference (like the gymnast standing still) to establish a perspective baseline for that session, avoiding complex multi-step tapping workflows.
-3. **Hardware Check:** Implement the WebGPU performance benchmark script.
+3. **Fail-safe Logic:** Implement background motion detection to alert the user if the camera is bumped.
+4. **Ground Truth Curation:** Assemble and annotate a baseline video dataset for model evaluation.
+5. **Hardware Check:** Implement the WebGPU performance benchmark script.
