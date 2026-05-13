@@ -117,13 +117,15 @@ Flutter is preferred due to better animation/rendering consistency.
 
 ### Recommended
 
-* FFmpeg (via `ffmpeg_flutter`)
+* FFmpeg (via `ffmpeg_flutter`) - **Must use LGPL build**.
 
 Why:
 * Essential for handling default OS formats (HEVC on iOS, H.264/H.265 on Android).
 * Required for precise clip trimming.
 * Enables slow-motion frame extraction (120/240fps).
 * Facilitates annotation burn-in for exporting and sharing.
+
+*License Note:* To avoid GPL infection, ensure the LGPL build of FFmpegKit is used (never `--enable-gpl`). App Store distribution with LGPL can be complex; an alternative for basic trimming is native iOS (AVFoundation) and Android (MediaCodec) APIs, but FFmpeg is superior for annotation burn-in.
 
 ---
 
@@ -153,8 +155,8 @@ Alternative options:
 
 To avoid testing overhead and ensure reliable performance, the mobile v1 will commit to:
 
-* **iOS:** MoveNet Thunder (utilizing CoreML acceleration for fast performance).
-* **Android:** YOLOv8-pose nano (quantized, ~6MB footprint).
+* **iOS:** MoveNet Thunder (utilizing CoreML acceleration for fast performance). *Note: Must verify Apache 2.0 license applicability on TF Hub model card before commercial deployment.*
+* **Android:** RTMPose nano (or similar MIT/Apache 2.0 alternative like ViTPose, replacing YOLOv8-pose nano due to AGPL-3.0 licensing).
 
 Avoid:
 
@@ -171,7 +173,7 @@ Target:
 ## Offline Model Management Strategy
 
 * Models will be shipped with the app bundle or securely downloaded on the first run.
-* Ensure stringent model size limits (e.g., maintaining the ~6MB constraint of YOLOv8-nano) to minimize footprint.
+* Ensure stringent model size limits (e.g., maintaining the ~6MB constraint for the selected nano model) to minimize footprint.
 
 ---
 
@@ -240,7 +242,7 @@ Overlay a stable 2D skeleton on recorded footage.
 
 ## Technical Recommendations
 
-Use the pinned models (MoveNet Thunder for iOS, YOLOv8-pose nano for Android).
+Use the pinned models (MoveNet Thunder for iOS, RTMPose nano for Android).
 
 Prefer:
 

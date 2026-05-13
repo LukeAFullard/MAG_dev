@@ -17,7 +17,7 @@ This is the highest-value, most achievable feature for a coach's daily workflow.
 
 A visual foundation for movement analysis, explicitly marketed as "consistency tracking" rather than medical-grade measurement.
 
-* **Tracking Model:** Deploying robust 2D keypoint extraction (e.g., YOLO-Pose via Transformers.js WebGPU) running locally.
+* **Tracking Model:** Deploying robust 2D keypoint extraction (e.g., RTMPose via Transformers.js WebGPU) running locally.
 * **Visualizations:** The player displays skeletal joints, major joint angles, a Center of Mass (COM) approximation, and trajectory traces (e.g., the path of the hips during a flip).
 * **Relative Depth (Stabilization):** Utilizing lightweight monocular depth maps strictly to reduce joint jitter, handle occlusion, and improve the temporal consistency of the 2D tracking.
 
