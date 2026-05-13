@@ -1,21 +1,17 @@
-To create the "best gymnastics app in the world," the plan must move beyond generic pose estimation to a **Personalized Biomechanical Model**. By measuring the specific limb lengths and mass distribution of the individual athlete, the app can transition from "visual estimation" to "true physics simulation."
+To create the "best gymnastics app in the world," the product must be a **local-first gymnastics video analysis assistant** that helps coaches rapidly review attempts, track athlete consistency, detect technical deviations, and monitor progress over time.
+
+The project shifts away from "research-heavy, true physics simulation" and "automated judging" to practical, trust-building tools that serve as a daily coaching workflow enhancer.
 
 ---
 
-## I. Biometric Profiling: Calibrating the Physics Engine
+## I. Core Value Proposition
 
-Generic AI models often assume "average" human proportions, which can lead to a 40% error in predicting joint forces. By integrating a personalized onboarding phase, we can refine the physics accuracy.
+Rather than promising "medical-grade biomechanics" or "perfect AI scoring," the application focuses on consistency tracking and comparative review. Single-camera video is inherently limited for exact physical measurements in gymnastics, but it is extremely powerful for:
 
-### 1. Manual Measurement & 3D Body Scanning (Phase 2 Enhancement)
-
-* **Method:** The primary and most reliable path is **manual physical measurement** (a coach with a tape measure). A 60-second 3D scan (front, back, sides) from a laptop webcam is framed as a *Phase 2 enhancement*, as consumer-grade monocular photogrammetry is unreliable without controlled lighting and calibration targets.
-* **Extraction & Calibration:** Coaches **enter real physical measurements manually** to ground-truth the physics engine. In Phase 2, automated extraction from scans will be introduced as a supplemental enhancement.
-* **Impact:** This allows the app to calculate the **exact Center of Mass (CM)** and **Moment of Inertia** for that specific gymnast, rather than relying solely on a population average.
-
-### 2. Digital Skeleton Personalization
-
-* **Custom Humanoid Model:** The 2D landmarks from the pose model are mapped onto the athlete's specific biometric skeleton.
-* **Depth Ambiguity Resolution:** Using the athlete's known limb lengths as "hard constraints," the AI can more accurately "lift" 2D video into 3D space by knowing that a forearm cannot physically stretch or shrink during a vault.
+* **Movement Consistency:** Tracking how an athlete's technique holds up across multiple attempts or sessions.
+* **Side-by-Side Comparison:** Comparing an athlete against their past performance, against an ideal reference, or comparing a successful attempt to a failed one.
+* **Landing Analysis:** Evaluating landing stability, step count, lateral drift, knee collapse tendency, and landing dispersion. This is a specialized feature perfectly suited for monocular video because the ground plane provides a strong constraint.
+* **Session Analytics & Organization:** Automatically turning long, tedious recordings into categorized, easy-to-review clips (e.g., "all vault attempts", "all dismount landings").
 
 ---
 
@@ -27,53 +23,40 @@ To build a viable product, the application must differentiate itself from incumb
 * **Differentiation:**
     * **Affordability:** Runs on standard laptops/desktops without expensive proprietary hardware.
     * **Privacy First:** The local-first architecture ensures compliance with youth privacy laws (COPPA/GDPR) by keeping all sensitive video and biometric data on-device.
-    * **Personalized Biometrics:** Unlike generic tools, the system calibrates to the individual athlete's body, providing actionable physics-based feedback rather than just simple video playback.
-* **Monetization:** A tiered SaaS model targeting club programs (B2B), with the core value proposition centered on reducing coach workload and objectively tracking athlete progression and safety (e.g., landing impact).
-
-## III. Strategic Feature Expansion (The "Missing" Layer)
-
-Based on current market gaps and emerging 2026 tech, the following features should be integrated:
-
-* **Live AR Coaching Overlay:** Use **Transformers.js (v3) with WebGPU** to provide sub-100ms latency. An AR skeleton is overlaid on the live camera feed, turning red when a joint angle (like a knee at landing) deviates from the FIG-compliant target.
-* **Dynamic Injury Risk Dashboard:** Combine biomechanical data (e.g., landing impact velocity) with **wearable data** (Heart Rate Variability, sleep, and training load). This creates a "susceptibility model" that alerts the coach when an athlete is at high risk for an ACL or labral tear.
-* **Gamified Skill Trees:** Implement a visual "progression map" based on the FIG levels. Athletes earn "XP" and digital badges for mastering specific biomechanical benchmarks, such as maintaining a 180° handstand for 5 seconds.
-* **"Ghost" Pro Overlay:** Allow athletes to record a routine and immediately overlay a transparent 3D "ghost" of an Olympic-level execution for direct visual comparison of body shapes.
+    * **Workflow Automation:** Saves coaches massive amounts of time by automatically extracting and tagging clips, reducing manual video scrubbing.
+* **Monetization:** A tiered SaaS model targeting club programs (B2B), with the core value proposition centered on reducing coach workload and providing objective progress tracking over time.
 
 ---
 
-## IV. Updated Step-by-Step Development Plan
+## III. Updated Step-by-Step Development Plan
 
-The plan has been revised to focus on an MVP execution strategy, validating market demand before scaling to complex, multi-year research goals.
+The plan has been completely revised to focus on reliability, speed, and usability in real coaching environments.
 
-### Phase 0: The "Digital Twin" Onboarding (Months 1–3)
+### Phase 1: Reliable Core
+* **Focus:** Providing immediate utility without making unfulfillable "true 3D" promises.
+* **Features:**
+  * Auto Clip Extraction (detect athlete, trim attempts, group by skill).
+  * 2D Pose Tracking & Overlays (joints, angles, COM approximation, trajectories).
+  * Side-by-Side Comparison Tools.
+  * Specialized Landing Analysis (stability, drift, knee collapse).
+  * Session Analytics (attempts, consistency scores, progression over weeks).
+  * Manual Coach Annotations (frame stepping, tagging, drawing).
 
-* **Focus:** Biometric measurement and calibration via manual entry.
-* **Tech:** Implement a simple UX for coaches to input precise physical measurements (limb lengths, weight) to build the athlete's personalized profile. 3D scanning SDK integration is deferred to Phase 2.
-* **Goal:** A "Physics Profile" for every user that stores their unique mass distribution.
+### Phase 2: Enhanced Motion Intelligence
+* **Focus:** Improving temporal stability and occlusion handling.
+* **Features:**
+  * Depth-assisted stabilization (using depth for relative geometry, not exact metrics).
+  * Temporal smoothing (Kalman filtering, trajectory smoothing).
+  * Apparatus-aware constraints (leveraging fixed geometry of floor, beam, high bar).
+  * Camera calibration workflows to improve scale consistency and trajectory tracking.
 
-### Phase 0.5: Camera Calibration & Placement (Month 3)
-
-* **Focus:** Establishing accurate 3D lifting from 2D video.
-* **Tech:** Implement a checkerboard or apparatus-marker-based homography calibration.
-* **Goal:** Improve 3D lifting accuracy and provide camera placement guidance to ensure optimal keypoint visibility (e.g., side angles for floor landings).
-
-### Phase 1: The MVP Execution - Floor Landings (Months 4–6)
-
-* **Focus:** Desktop/laptop-native inference focused exclusively on Floor landings.
-* **Tech:** Export YOLO models to ONNX; use WebGPU for browser/desktop acceleration.
-* **Goal:** Live joint-angle tracking for knee angle at impact. Validate that coaches are willing to pay for this single, high-value capability before expanding.
-
-### Phase 2: Execution Deductions & Load Optimization (Months 7–12)
-
-* **Focus:** FIG Code of Points integration (Execution only) and training load management.
-* **Tech:** Expanding the Phase 1 physics engine to evaluate other rulesets (e.g., knee angle, toe point).
-* **Goal:** Automated E-Score deductions and long-term technique insights.
-
-### Phase 3: The Social & Professional Ecosystem (Vision)
-
-* **Focus:** Gamification and external data sync.
-* **Tech:** Integrate HealthKit/Google Fit and Garmin APIs.
-* **Goal:** Skill trees, community challenges, and full training load visualization.
+### Phase 3: Advanced Insights
+* **Focus:** Long-term analytics and proactive coaching insights.
+* **Features:**
+  * Athlete trend models.
+  * Fatigue detection.
+  * Personalized technique baselines.
+  * Predictive analytics based on historical tracking data.
 
 ---
 
@@ -81,6 +64,7 @@ The plan has been revised to focus on an MVP execution strategy, validating mark
 
 | Component | Reality Check |
 | --- | --- |
-| **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy YOLO-pose models on a laptop/desktop browser at optimal framerates. |
+| **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy YOLO-pose and tracking models on a laptop/desktop browser at optimal framerates. |
 | **YOLO-pose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. |
-| **3D Scanning** | **Reliability Barrier.** Consumer-grade monocular photogrammetry is unreliable. Manual entry is the default; 3D scanning is deferred to Phase 2, and must ensure 100% local processing of body scan images on the laptop to comply with youth privacy laws (COPPA/GDPR). |
+| **Monocular Depth** | **Re-scoped.** Used strictly for relative geometry, motion assistance, and consistency enhancement—not for extracting exact real-world distances or forces. |
+| **Auto Clip Detection** | **Highly Feasible.** Can be reliably achieved using pose velocity, bounding boxes, and simple motion thresholds without needing "perfect AI." |

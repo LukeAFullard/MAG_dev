@@ -1,29 +1,50 @@
-# Vision Appendix: Automated Skill Recognition & D-Score
+# Vision Appendix: Long-Term Research Problems
 
-The features described in this document represent a multi-year research vision and are explicitly excluded from the 2-year product roadmap and investor-facing timelines. Achieving these capabilities requires solving profound challenges in temporal action recognition and data labeling at scale.
+The features described in this document represent a multi-year research vision. They are explicitly excluded from the core product roadmap. Attempting to build these features too early represents a dangerous time sink. The focus must remain on reliable, practical coaching tools first.
 
 ---
 
-## 1. Automated Skill Recognition (ASR)
+## 1. Automated Skill Recognition (ASR) & Judging
 
-While Phase 1 and 2 track joint angles and apply deductive rules, ASR identifies the **identity** of the movement itself (e.g., distinguishing a double layout from a double pike).
+Automating the role of a gymnastics judge (D-Score and E-Score calculation) requires profound breakthroughs in temporal action recognition.
 
-* **The Core Challenge:** Automating skill recognition is a research-level problem. There are no open, labeled datasets for FIG gymnastics elements. Standard temporal sequence models (Action Recognition Transformers) require hundreds of hours of labeled gymnastics video per apparatus to train reliably.
-* **Proposed Implementation with Transformers.js**: Utilize temporal sequence models to analyze the trajectory of the 3D landmarks over time.
-* **Gymnastics Grammar**: Develop a logic layer that understands the sequence of common high-value routines, ignoring rare elements to minimize the dataset requirements and editorial burden early on.
+* **The Core Challenge:** There are no open, labeled datasets for FIG gymnastics elements. Standard temporal sequence models require hundreds of hours of labeled gymnastics video per apparatus to train reliably.
+* **The "Virtual Judge":** Once skills are reliably identified, mapping them to the FIG Code of Points and automatically summing difficulty values or flagging execution deductions is a massive editorial and data-labeling burden.
+* **Why Delay:** Coaches need workflow tools today; they do not need an imperfect AI judging their athletes incorrectly, which destroys trust.
 
-## 2. The Virtual Judge: D-Score (Difficulty)
+## 2. Full 3D Skeletal Reconstruction & True Physics Simulation
 
-Once skills are reliably identified, the app could automate the Difficulty component of gymnastics scoring.
+Extracting medical-grade biomechanical data from single-camera video is an "ill-posed problem" fraught with depth ambiguity.
 
-* **D-Score Summation**: The app would automatically sum the difficulty values of recognized elements to calculate the start value of a routine as it is performed.
-* **Element Mapping**: Each recognized skill would be mapped to its specific FIG difficulty value (e.g., A-value, D-value) using a pared-down local SQLite database that is easier to maintain.
+* **The Core Challenge:** Monocular video cannot robustly support exact force estimation, precise joint torque calculations, or exact real-world distances without highly controlled, multi-camera environments and calibration markers.
+* **Physics Simulation:** Building a true physics engine that calculates exact moments of inertia or ground reaction forces based on video requires a level of precision that standard webcams and smartphones cannot provide in a chaotic gym environment.
+* **Why Delay:** "True 3D" promises are technically and legally dangerous. Focus instead on relative geometry and consistency tracking.
 
-## Feasibility and Dependencies
+## 3. Advanced Predictive Injury Modeling
 
-Integrating the FIG Code of Points for D-Score calculation is ranked as a **Multi-Year Research Feasibility** because it requires:
-1. **Academic Partnerships**: Likely partnering with universities or national governing bodies to secure funding and access to video.
-2. **Data Labeling Pipeline**: A massive effort to build a proprietary dataset of labeled skills.
-3. **Model Fine-Tuning**: Dealing with the severe motion blur and self-occlusion present in high-level gymnastics, which degrades monocular 3D tracking.
+Moving from "workload monitoring" to "injury prediction."
 
-This should be treated strictly as an aspirational goal until the MVP and Phase 1 have demonstrated product-market fit.
+* **The Core Challenge:** Predicting injuries requires massive datasets correlating specific biomechanical deviations with actual injury occurrences over years.
+* **Wearable Integration:** Integrating with Apple HealthKit or Garmin APIs to combine HRV, sleep data, and tracking data to build individual susceptibility models.
+* **Why Delay:** The medical and legal implications of predicting (or failing to predict) an injury are immense.
+
+## 4. Multi-Athlete Scene Analysis & Apparatus-Wide Automation
+
+* **The Core Challenge:** Tracking multiple athletes simultaneously across a crowded gym floor, determining who is performing what skill on which apparatus without manual coach input.
+* **Why Delay:** It introduces massive computational overhead and complexity for marginal workflow gains over a simple manual "Apparatus Selection" toggle.
+
+## 5. Advanced Generative AI Coaching
+
+* **The Core Challenge:** An AI system that not only tracks the body but generates natural language coaching cues (e.g., "Tell the athlete to drop their shoulders earlier in the swing").
+* **Why Delay:** Generative models are prone to hallucination. A wrong coaching cue in gymnastics can lead to catastrophic injury. Coaches must remain the sole voice of technical instruction.
+
+---
+
+### Feasibility and Dependencies
+
+Pursuing these research goals requires:
+1. **Academic Partnerships**: Partnering with universities or national governing bodies to secure funding and access to massive video datasets.
+2. **Data Labeling Pipeline**: A massive effort to build a proprietary dataset of labeled skills and deductions.
+3. **Multi-Camera R&D**: Moving beyond the local-first, monocular limitation to process synchronized multi-angle video.
+
+These should be treated strictly as aspirational goals until the core product has demonstrated undeniable product-market fit.

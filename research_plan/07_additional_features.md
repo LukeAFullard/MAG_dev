@@ -1,46 +1,42 @@
-To round out this development plan and ensure it truly becomes the "best in the world," there are four final dimensions to consider: **Environmental Resilience**, **Secure Peer-to-Peer Synchronization**, **Interactive Data Storytelling**, and **Forensic Defensibility**.
+To ensure the product is truly valuable in a daily coaching environment, it must include practical extensions that give coaches ultimate control and provide robust tools for communication. AI must augment the coach, never replace or dictate to them.
 
 ---
 
-## IV. Environmental Resilience: The "Chalk & Noise" Filter
+## I. Manual Annotation Tools (The Override Principle)
 
-Gymnastics facilities are notoriously difficult environments for computer vision due to high-contrast lighting, reflective mats, and airborne chalk dust that can "fog" lenses or create visual artifacts.
+AI will inevitably fail—a limb will be occluded, or tracking will jitter during a complex twist. Professional tools survive because users can override the system. Manual tools are not a fallback; they are a core feature for building trust.
 
-* **Robustness Benchmarking**: Implement a vision pipeline specifically tuned for real-world "noise". By using **Underconfidence Adversarial Training (UAT)**, the model can maintain accuracy even when chalk dust or movement blur reduces the confidence of landmark detection.
-* **Dynamic Background Subtraction**: Use the **Personalized Biometric Profile** from Phase 0 to "lock" onto the specific height and limb ratios of the user, allowing the AI to ignore other gymnasts moving in the background or reflections on the apparatus.
-* **Audio-Visual Fusion**: Since the environment is often loud, use on-device signal processing to filter out gym noise, ensuring that **Voice Commands** (e.g., "Start Routine") are recognized even amidst music or falling mats.
+* **Point Editing & Correction:** The ability for a coach to pause the video, click on an incorrectly tracked joint, and manually drag it to the correct position. The system should then interpolate this correction across adjacent frames.
+* **Frame Stepping & Trimming:** High-precision, frame-by-frame scrubbing controls (e.g., using arrow keys or a jog wheel UI) to find the exact moment of impact. Coaches can manually adjust the start and end points of auto-detected clips.
+* **Coach Overlays:** Drawing tools (lines, freehand, angles, circles) allowing a coach to draw directly on the video frame.
+* **Tagging & Notes:** Adding text notes or custom tags (e.g., "Good height", "Needs tighter tuck") to specific clips or specific frames within a clip.
 
----
+## II. Advanced Side-by-Side Comparison
 
-## V. Secure Peer-to-Peer (P2P) Synchronization
+Comparative review is often more valuable than absolute metric analysis. Comparing an athlete to their past self or to an ideal model is a foundational coaching technique.
 
-A "Local-First" architecture requires a way to share data between an athlete’s phone and a coach’s tablet without relying on an unstable gym Wi-Fi or a central cloud server.
+* **Timeline Synchronization:** The crucial ability to sync two different videos to a common "anchor frame" (e.g., syncing a vault attempt from today and one from last month so that the moment the feet hit the springboard happens at the exact same time on playback).
+* **Overlay Mode:** Placing two videos on top of each other with adjustable transparency, allowing a coach to see exactly where a trajectory deviates.
+* **Pro-Reference Import:** Allowing coaches to import external videos of elite gymnasts to use as a side-by-side comparison standard.
 
-* **CRDT-Based Replication**: Utilize **Conflict-Free Replicated Data Types (CRDTs)** to ensure that if a coach adds a technical note on their tablet while the athlete is recording on their phone, the data merges seamlessly the moment they are in proximity.
-* **Opportunistic Sync**: Use Bluetooth Low Energy (BLE) or Wi-Fi Direct for **asynchronous synchronization**, achieving <10ms median latency for local data reasoning. This allows a coach to review a vault on a large-screen tablet seconds after it was recorded on a smartphone.
+## III. Environmental Resilience: The "Chalk & Noise" Filter
 
----
+Gymnastics facilities are notoriously difficult environments for computer vision due to high-contrast lighting, reflective mats, and airborne chalk dust.
 
-## VI. Interactive Infographics & 3D Prototyping
+* **Dynamic Background Subtraction:** Utilizing simple background subtraction or bounding-box logic to ignore other gymnasts moving in the background or reflections on the apparatus, ensuring the AI stays locked onto the primary athlete.
+* **Audio-Visual Fusion:** Because the environment is loud, integrating simple audio-threshold detection (e.g., the loud "thwack" of hitting a springboard or vault table) to help the auto-clipping algorithm pinpoint the start of an explosive movement.
 
-Transforming biomechanical data into "tangible" feedback helps young athletes internalize complex physics.
+## IV. Secure Peer-to-Peer (P2P) Synchronization
 
-* **Interactive Vector Objects**: Use a client-side framework to render interactive SVG infographics of a session. Instead of static charts, an athlete can click on a specific "swing" in their high-bar routine to reveal the exact angular velocity $(\omega)$ and moment of inertia $(I)$ at that millisecond.
-* **3D-Printable "Form Proxies"**: Export the 3D pose data of a "perfect landing" or a "stuck skill" into a CAD-compatible format. This allows the athlete to 3D print a physical model of their own biomechanical success, serving as both a technical study aid and a personalized trophy.
+A "Local-First" architecture requires a way to share data between a laptop/desktop and a coach’s tablet without relying on unstable gym Wi-Fi or a central cloud server.
 
----
+* **Opportunistic Sync:** Using local network transfer (Wi-Fi Direct or simple QR-code based local IP sharing) to quickly transfer an annotated clip or a session analytics dashboard from the main analysis laptop to a tablet for the coach to show the athlete on the floor.
+* **Export Versatility:** Enabling the export of raw video, annotated clips (with drawings and pose data burned into the video), or simple PDF reports of session analytics, ensuring the data can leave the app in universally readable formats.
 
-## VII. Forensic Defensibility: The "Official" Score
+### The "Hardware Handshake" Checklist
 
-To make the app viable for virtual competitions or official club grading, the scoring data must be immutable and verifiable.
+Before full deployment of these features, run an on-device benchmarking suite to ensure the local laptop/desktop hardware can maintain performance:
 
-* **Cryptographic Logging**: Implement a system of **digitally signed logs** for every routine. This ensures that the D-Score and E-Score generated by the AI are "forensically defensible," meaning they cannot be tampered with after the fact. While adoption by actual federations requires regulatory approval pathways, having the architecture ready is important for future-proofing.
-* **Audit Trails**: Every deduction flagged by the "Virtual Judge" (e.g., a 0.1 deduction for un-pointed toes) is timestamped and linked to the specific frame of video, allowing for a transparent audit by a human head judge.
-
-### Implementation Checklist: The "Hardware Handshake"
-
-Before full deployment, run an on-device benchmarking suite to ensure the local laptop/desktop hardware can maintain the physics-informed neural network (PIANN):
-
-1. **Latency Check**: Target $\sim33\text{ms}$ per frame for the 3D lifting engine.
-2. **Resource Profile**: Monitor memory usage and GPU load during a simulated 2-hour practice.
-3. **Accuracy Validation**: Compare the "Virtual Judge" against manual human scores to maintain an $R^2 \ge 0.90$ for performance prediction.
+1. **Latency Check**: Ensure auto-clip detection and extraction takes seconds, not minutes, after a video is imported.
+2. **Resource Profile**: Monitor memory usage during side-by-side playback of two 60FPS high-definition videos with pose overlays.
+3. **UI Responsiveness**: Ensure frame-stepping and manual annotation tools remain instantly responsive without lag.

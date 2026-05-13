@@ -1,6 +1,6 @@
 A **Local-First** data architecture is a design paradigm where the primary copy of application data—and the logic required to process it—resides on the user’s local device (specifically, a desktop or laptop computer) rather than a remote server. In this model, the network is treated as an optional synchronization layer rather than a constant requirement for functionality.
 
-For a high-performance biomechanics application, this architecture leverages the superior processing power of laptops/desktops to ensure sub-millisecond response times and ironclad data privacy.
+For a high-performance video analysis application, this architecture leverages the superior processing power of laptops/desktops to ensure sub-millisecond response times, rapid clip generation, and ironclad data privacy.
 
 ---
 
@@ -11,28 +11,32 @@ For a high-performance biomechanics application, this architecture leverages the
 Unlike cloud-centric apps that treat the browser or mobile app as a "thin client," a local-first app treats the desktop/laptop as the **Source of Truth**.
 
 *
-**Persistent Local Database:** High-resolution video and biomechanical metrics are stored in local engines like **SQLite** or **Realm** by default. Crucially, the database stores the **raw per-session metric distributions (variance across attempts)**, not just session averages. A gymnast consistently hitting a 68° knee angle is biomechanically different from one averaging 68° across a 55°–80° range.
+**Persistent Local Database:** High-resolution video and performance metrics are stored in local engines like **SQLite** or **Realm** by default. Crucially, the database stores the **raw per-session metric distributions (variance across attempts)**, not just session averages. This allows coaches to track longitudinal consistency.
 
 
 *
-**Asset Management:** Large video files are processed and "pruned" locally, keeping only analyzed clips to save storage without ever uploading raw, sensitive footage to a server.
+**Asset Management:** Large video files are processed and "pruned" locally into short, manageable clips. The system groups these clips by skill without ever uploading raw, sensitive footage to a server.
 
 
 
 ### 2. Local Hardware Inference
 
-The "intelligence" of the app—the 3D pose estimation and FIG scoring logic—happens entirely on the local hardware.
+The "intelligence" of the app—auto clip detection, pose tracking, and depth stabilization—happens entirely on the local hardware.
 
 *
 **Hardware Acceleration:** The app utilizes the laptop/desktop's **GPU** (via WebGPU and Transformers.js) to perform real-time calculations without the thermal throttling and power constraints of mobile devices.
 
 
 *
-**Monocular 3D Reconstruction Challenges & The Depth Map Solution:** Lifting 2D video into 3D space from a single camera introduces significant depth ambiguity. To solve this, the architecture integrates a Depth Map model (e.g., **Depth Anything v2**) to generate per-pixel relative depth. Combined with YOLO-pose keypoints, this converts 2D (x, y) landmarks into 3D (x, y, z_relative) coordinates. The Phase 0 biometric profiling is then used to convert this relative scale into true metric coordinates. Note: this still struggles with heavy motion blur in explosive movements (e.g., vault flight).
+**The Role of Depth Sensing (Stabilization, Not Metric Reconstruction):** Lifting 2D video into 3D space from a single camera introduces significant depth ambiguity. Instead of trying to use depth for exact metric distances (which is unreliable), the architecture integrates a Depth Map model (e.g., **Depth Anything v2**) to provide **relative geometry and stabilization**. It is used to:
+    * Reduce joint jitter and improve temporal consistency.
+    * Separate limbs from the background (handling occlusion).
+    * Determine approximate relative body configurations (e.g., are knees in front of the torso?).
+    * Estimate landing planes and relative floor height.
 
 
 *
-**Zero Latency:** Because data doesn't travel to a server and back, the athlete receives immediate feedback (e.g., an audio "ping" upon hitting a vertical handstand) while still on the apparatus.
+**Zero Latency:** Because data doesn't travel to a server and back, the coach receives immediate feedback and instant clip extraction while still on the floor.
 
 
 
@@ -41,7 +45,7 @@ The "intelligence" of the app—the 3D pose estimation and FIG scoring logic—h
 This architecture serves as a proactive guardian for sensitive environments like gymnastics clubs.
 
 *
-**Data Isolation:** Biometric data, 3D body scans, and training videos never leave the device, satisfying the privacy concerns of parents and regulatory requirements.
+**Data Isolation:** Performance data, analysis notes, and training videos never leave the device, satisfying the privacy concerns of parents and regulatory requirements.
 
 
 *
@@ -55,22 +59,12 @@ This architecture serves as a proactive guardian for sensitive environments like
 
 | Layer | Technology | Role in Local-First |
 | --- | --- | --- |
-| **Data Logic** | **WASM / Transformers.js** | Runs complex C++/Python logic at near-native speeds in the browser/client.
-
- |
-| **Inference (Pose)** | **ONNX / YOLO-Pose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently.
-
- |
-| **Inference (Depth)**| **Depth Anything v2** | Generates relative depth maps to provide the critical Z-axis signal.
-
- |
-| **Storage** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation without cloud APIs.
-
- |
-| **Sync (Optional)** | **Local Network Transfer** | Simple QR-code or local network transfer for syncing data (e.g., coach reviews), avoiding the implementation complexity of CRDTs.
-
- |
+| **Data Logic** | **WASM / Transformers.js** | Runs complex logic (like temporal smoothing algorithms) at near-native speeds in the browser/client. |
+| **Inference (Pose)** | **ONNX / YOLO-Pose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently. |
+| **Inference (Depth)**| **Depth Anything v2** | Generates relative depth maps used for multi-frame depth stabilization and occlusion handling. |
+| **Storage & Video** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation (auto-clipping) without cloud APIs. |
+| **Sync (Optional)** | **Local Network Transfer** | Simple QR-code or local network transfer for syncing data (e.g., sharing a session to another coach's device). |
 
 ## Why it Matters for Gymnastics
 
-In Men's Artistic Gymnastics (MAG), the "logic of motion" is complex and fast. A local-first approach ensures that the "Virtual Judge" can process a 240 FPS video of a vault and provide a D-score instantly, rather than waiting for a 1GB video file to upload, process, and return from the cloud. This transforms the app from a passive recording tool into an **active training partner**.
+In Men's Artistic Gymnastics (MAG), coaching requires rapid iteration. A local-first approach ensures that the app can process high frame rate video instantly, organize clips automatically, and allow a coach to perform side-by-side comparisons of attempts without waiting for large video files to upload, process, and return from the cloud. This transforms the app from a passive recording tool into an **active coaching assistant**.

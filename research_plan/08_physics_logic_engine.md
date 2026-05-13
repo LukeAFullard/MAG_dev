@@ -1,113 +1,52 @@
-The physics logic of the application serves as the "engine" that converts raw visual landmarks into objective biomechanical truth. By applying fundamental laws of mechanics to the personalized **Digital Twin** established in Phase 0, the app moves from simple motion tracking to high-fidelity simulation.
+The "physics logic" of the application is no longer about true simulation or medical-grade biomechanics. Instead, it serves as a **constraint engine** that converts raw, noisy visual landmarks into stable, reliable tracking data by applying the basic rules of geometry, anatomy, and the environment.
 
 ---
 
-## I. Fundamental Kinematics & Constraints
+## I. Human Biomechanical Constraints
 
-To ensure the 3D model remains realistic and accurate, the engine applies "hard" physics constraints to the AI's pose estimation.
+To ensure the pose model remains realistic and accurate, the engine applies "hard" anatomical constraints to the AI's 2D and relative-depth estimations.
 
-* **Biometric Constraints**: The engine uses the specific limb lengths measured in Phase 0 as fixed variables. Since a gymnast's bones cannot physically stretch or shrink, any 2D visual "jitter" is corrected by mapping it to a rigid 3D skeleton.
-
-
-* **Center of Mass (CM) Stabilization**: The model calculates the CM in real-time. In static or slow-moving positions (like a handstand), it applies a loss function that penalizes any pose where the CM deviates from the base of support.
-
-
-*
-**Anatomical Range Calibration**: Joint angles are constrained by the athlete's specific flexibility baseline (e.g., maximum shoulder flexion), preventing the AI from "hallucinating" impossible positions during rapid rotations.
-
-
+* **Skeletal Proportions**: While exact limb lengths aren't required, the engine enforces stable skeletal proportions over time. A gymnast's femur cannot stretch or shrink from frame to frame. Any visual "jitter" that violates this rule is corrected.
+* **Realistic Motion Continuity**: Humans move continuously; joints do not teleport. The engine uses optimization to enforce velocity and acceleration limits on joints, smoothing the data.
+* **Anatomical Range Limits**: Joint angles are constrained by standard human flexibility limits. This prevents the AI from "hallucinating" impossible positions (like a knee bending backwards) during rapid rotations or heavy motion blur.
 
 ---
 
-## II. Apparatus-Specific Physics Logic
+## II. Apparatus-Specific Constraints & Logic
 
-The application applies different mechanical formulas based on the specific requirements of the six FIG apparatus.
+The application leverages the known, fixed geometry of the six FIG apparatuses to drastically improve tracking stability. By knowing *where* the gymnast is, the AI can make much smarter assumptions.
 
-### 1. Floor: Impact Dynamics & Energy Dissipation
+### 1. Floor: Landing Plane Estimation
 
-*
-**Landing Stiffness**: The app monitors the knee joint angle to differentiate between elite "stiff" landings and recreational "soft" landings.
+* **The Ground Plane**: The engine uses camera calibration or manual user input to estimate the floor plane.
+* **Logic**: The system knows feet cannot pass through the floor. This provides a hard constraint for tracking the lowest point of a movement.
+* **Metrics**: This enables highly accurate estimations of landing stability, lateral drift, and the minimum knee angle at impact (knee collapse tendency).
 
+### 2. Pommel Horse: Fixed Anchor Points
 
-*
-**Logic**: To reduce heel loading and increase stability, the knee angle should remain above $63^{\circ}$ at the point of maximum compression.
+* **The Apparatus**: The horse is a fixed object of known height and dimensions.
+* **Logic**: By identifying the pommels or the horse body, the engine can stabilize the tracking of the gymnast's hands (which are anchored to the horse) and better estimate the relative distance of the feet from the center of rotation.
 
+### 3. Vault: Board and Table Geometry
 
+* **The Environment**: The springboard and vault table have fixed, standard dimensions.
+* **Logic**: Detecting the moment of contact with the board and table allows the system to accurately define the distinct phases of the vault (run, board contact, pre-flight, block, post-flight, landing).
 
+### 4. High Bar & P-Bars: Fixed Horizontal Axes
 
-*
-**Impact Force Estimation**: By combining the athlete's mass ($m$) with the vertical impact velocity ($v$), the app estimates the Ground Reaction Force (GRF).
+* **The Apparatus**: These apparatuses consist of rigid horizontal lines in space.
+* **Logic**: During a giant swing or a release move, the gymnast's center of rotation is tied to the bar. The engine can use this fixed axis to correct depth ambiguity—if the 2D model thinks a hand is floating away from the bar during a swing, the constraint engine snaps it back.
 
+### 5. Rings: Vertical Hanging Plumb Lines
 
-
-$$F = m \cdot \frac{\Delta v}{\Delta t}$$
-
-
-
-### 2. Pommel Horse: Circular Kinematics
-
-*
-**Amplitude (HTDh)**: Mastery is measured by the horizontal distance between the head and toes.
-
-
-* **Centripetal Coordination**: The app tracks the diameter of horizontal ankle rotation. A decreasing "shoulder diameter" or "ankle diameter" indicates fatigue and a loss of dynamic balance.
-
-
-
-### 3. Vault: Projectile Motion & Power
-
-*
-**Impulse-Momentum**: The app calculates the power generated during the board and table contact phases.
-
-
-*
-**Benchmark**: Table contact time is tracked against an elite target of $\approx 0.26\text{s}$.
-
-
-
-
-*
-**Flight Parabola**: Once the gymnast leaves the table, the app maps the CM trajectory to predict the landing success based on vertical height and angular velocity ($\omega$).
-
-
-
-### 4. Rings: Static Equilibrium & Symmetry
-
-*
-**Vector Analysis**: For isometric holds like the Iron Cross, the app calculates the symmetry of shoulder abduction.
-
-
-*
-**Deduction Logic**: Even a $1^{\circ}$ deviation from a $90^{\circ}$ horizontal arm position or a slight shift in CM height triggers an automated FIG deduction.
-
-
-
-### 5. High Bar & P-Bars: Rotational Mechanics
-
-*
-**Conservation of Angular Momentum**: During release moves, the app visualizes the relationship between body shape and rotation speed.
-
-
-*
-**Moment of Inertia ($I$)**: Calculated using the athlete's personalized mass distribution.
-
-
-
-$$I = \sum m_i r_i^2$$
-
-
-*
-**Optimization**: The app explains the "why" behind coaching—showing that a tighter tuck (smaller $r$) reduces the moment of inertia, thereby increasing angular velocity ($\omega$) for faster rotations.
-
-
+* **The Environment**: The rings hang vertically from fixed straps.
+* **Logic**: Tracking the angle of the straps provides a highly reliable indicator of off-center movement and symmetry, helping to evaluate isometric holds like the Iron Cross.
 
 ---
 
-## III. Forensic Accuracy & Defensibility
+## III. Temporal Smoothing & Consistency
 
-Consistent with your interest in **forensic auditing (Vouch)** and **edge-native privacy (Percolo)**, the physics logic is designed to be:
+The ultimate goal of the constraint engine is **consistency**.
 
-* **Deterministic**: The same input video and biometric profile will always yield the same physics results.
-* **Cryptographically Signed**: Each analysis "log" is signed locally, ensuring the biomechanical data used for coaching or judging is authentic and hasn't been tampered with.
-
-This framework ensures that when the app tells a gymnast to "tuck tighter" or "land stiffer," it is providing advice rooted in the immutable laws of physics tailored specifically to their body.
+* **Kalman Filtering**: Applying filters to smooth the trajectory of keypoints over time, predicting where a joint *should* be based on its previous velocity if it becomes briefly occluded.
+* **Predictable Outputs**: The goal is that if a coach runs the same video through the app three times, the constraint engine ensures they get the exact same smooth trajectory trace every time, building trust in the tool.

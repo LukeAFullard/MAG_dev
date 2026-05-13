@@ -1,67 +1,46 @@
-Phase 0 is the "Calibration and Profiling" stage. While the research indicates that most apps operate in a technological vacuum, this phase transforms your application from a general video tool into a professional-grade biomechanical laboratory by establishing a **Digital Twin** of the athlete.
-
-By accurately measuring the athlete before they ever touch an apparatus, you solve the "ill-posed problem" where 3D pose estimation struggles with depth ambiguity.
+Phase 0 is the "Environment and Capture Calibration" stage. To extract reliable tracking and perform side-by-side comparisons, the quality of the input video and the setup of the camera are everything. Phase 0 focuses on establishing predictable, high-quality baselines for capture rather than building complex "Digital Twins" of the athletes.
 
 ---
 
-## Phase 0: The Digital Twin & Biomechanical Calibration
+## Phase 0: Capture & Environment Calibration
 
-### 1. Biometric Segment Mapping: The Metric Anchor
+### 1. Camera Calibration Workflow
 
-Instead of assuming universal human proportions, the app must capture the specific segment lengths of the gymnast. **This step is structurally necessary for the depth pipeline.** While models like Depth Anything provide *relative* depth, the Digital Twin provides the metric ground truth.
+To ensure that side-by-side comparisons and trajectory tracking are consistent, the application needs an understanding of the camera's perspective and the scale of the environment.
 
-* **Segment Lengths:** The primary and most reliable path is for coaches to input precise manual measurements (e.g., using a tape measure for humerus, radius, femur, and tibia). Consumer-grade webcam 3D scanning is considered a Phase 2 enhancement due to reliability issues without controlled lighting or calibration targets.
-* **Metric Conversion:** The engine samples the relative depth map at each YOLO joint. It then fits a scale factor using the athlete's known, manually entered limb lengths (e.g., minimizing residuals across the hip-to-knee and knee-to-ankle distances) to output true metric 3D coordinates.
-* **Mass Distribution:** By combining the athlete's total weight with limb circumferences, the app can estimate the mass of individual segments to more accurately calculate the Center of Mass (CM).
-* **Developmental Variation & Time-Series Triggers:** Youth gymnasts change rapidly. The system will prompt a re-calibration of the Digital Twin every 3–6 months. Additionally, **longitudinal regression detection** acts as an automatic trigger: if an athlete's landing stiffness suddenly regresses after tracking well for weeks, the app will prompt a Digital Twin re-calibration rather than treating it immediately as a technique failure, as the root cause may be a recent growth spurt altering their center of mass.
+* **Perspective Estimation:** A simple setup workflow where the user points the camera at floor markers or known apparatus points. The app uses these to estimate the camera's perspective relative to the ground plane.
+* **Apparatus Anchors:** Utilizing the known, fixed geometry of apparatuses (e.g., floor is planar, vault table height is fixed, high bar location is constant).
+* **Benefits:** This greatly improves scale consistency across different days, enhances landing plane estimation, and makes trajectory tracking much more reliable than trying to infer scale blindly.
 
+### 2. Encouraging Controlled Capture
 
+Good input quality drastically improves AI reliability. The app will actively guide coaches on how to capture footage to ensure the best possible tracking results.
 
-### 2. Anatomical Range of Motion (ROM) Baseline
+* **Capture Guidelines UI:** Built-in recommendations for:
+    * **Tripod Use:** Essential for side-by-side comparisons and stable trajectory tracing.
+    * **Side-Angle Capture:** Especially critical for landing analysis and profile views of rotation.
+    * **Lighting:** Ensuring the gymnast is well-lit and separated from the background.
+    * **Settings:** Minimum resolution and utilizing slow-motion recording modes when available for less motion blur.
 
-The research notes that the AI model must use a loss function that penalizes rotations exceeding "natural anatomical ranges". Phase 0 establishes these specific ranges for the individual.
+### 3. Apparatus & Biomechanical Constraints Baseline
 
-* **Joint Limit Calibration:** The athlete performs a series of controlled stretches (e.g., maximum shoulder flexion, knee extension).
-*
-**Compliance Checks:** This baseline allows the "Virtual Judge" to identify deductions like "bent knees" or "un-pointed toes" with higher certainty because it knows the athlete's maximum extension.
+Instead of deep, medical-grade biometric scanning, the app establishes basic rules to prevent the AI from generating impossible poses (jitter).
 
-
-*
-**Symmetry Tracking:** Establishing a baseline for shoulder and leg symmetry is essential for predicting injury risk later in training.
-
-
-
-### 3. Static Center of Mass (CM) Calibration
-
-The CM is the "anchor" for almost every FIG apparatus, from circular stability on Pommel Horse to the flight parabola on Vault.
-
-* **Static Baseline:** The app identifies the athlete's resting CM while standing.
-*
-**Dynamic Projection:** This baseline allows the app to calculate "maximum CM displacement" during floor landings and "shoulder vs. ankle diameter" during pommel circles.
-
-
+* **Skeletal Proportions:** While not explicitly measured with tape, the system enforces stable skeletal proportions frame-to-frame (a femur cannot shrink during a flip).
+* **Motion Continuity:** Using optimization algorithms to enforce realistic, continuous motion, preventing the tracked joints from "teleporting."
+* **Landing Plane Alignment:** Calibrating the estimated floor plane so the system knows where the gymnast's feet should stop.
 
 ### 4. Technical Environment Profiling (GPU/WebGPU Benchmarking)
 
-Since the architecture is "local-first," Phase 0 includes a hardware handshake to ensure the laptop/desktop can handle the workload.
+Since the architecture is "local-first," Phase 0 still includes a hardware handshake to ensure the laptop/desktop can handle the real-time processing workload.
 
 * **GPU/WebGPU Warmup:** The app runs a series of synthetic inference tests using **Transformers.js** to determine if it should prioritize the Nano, Small, or larger YOLO-pose model based on available compute.
-*
-**Performance Logging:** It establishes the baseline frame rate capacity of the machine to maintain a stable 30-60 FPS for tracking without frame drops.
-
-
+* **Performance Logging:** It establishes the baseline frame rate capacity of the machine to maintain a stable, high FPS for auto-clipping and tracking without dropping frames.
 
 ---
 
-## Technical Integration: The "Profile.json"
-
-All Phase 0 data is compiled into a local, encrypted **Biometric Profile**.
-
-$$I_{athlete} = \sum_{i=1}^{n} m_i r_i^2$$
-
-This formula is no longer a generic calculation; $m_i$ (segment mass) and $r_i$ (segment length) are now specific to the user, allowing the app to visualize the "why" behind coaching corrections—such as exactly how much faster they will rotate if they tuck their knees by an additional 5 degrees.
-
 ### Implementation Step
 
-1. **The Manual Input UI:** Build a simple, intuitive onboarding flow where a coach enters manual physical measurements (limb lengths, weight) with clear diagrams showing where to measure. 3D scanning is deferred to Phase 2.
-2. **Data Lock:** Save these parameters locally; they are never uploaded, ensuring 100% privacy for the young athletes.
+1. **Capture Onboarding UI:** Build a simple, intuitive onboarding flow that guides coaches on camera placement, tripod usage, and lighting.
+2. **Calibration Tool:** Create a manual tool where coaches can tap corners of the mat or known apparatus points on the screen to establish a perspective baseline for that session.
+3. **Hardware Check:** Implement the WebGPU performance benchmark script.
