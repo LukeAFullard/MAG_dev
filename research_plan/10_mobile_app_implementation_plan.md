@@ -1,0 +1,624 @@
+# Mobile Gymnastics Coach App — Implementation Plan
+
+## Project Goal
+
+Build a lightweight, reliable, coach-focused mobile application for iPhone and Android that provides:
+
+* fast video capture
+* automatic clip extraction
+* pose overlays
+* side-by-side comparison
+* landing review
+* athlete organization
+* lightweight session analytics
+
+The application must:
+
+* run reliably on modern mobile devices
+* prioritize stability and speed over advanced AI complexity
+* function offline where possible
+* avoid heavy real-time 3D reconstruction
+* avoid desktop-class computational requirements
+* support both iOS and Android from a shared codebase
+
+---
+
+# Product Positioning
+
+## Core Value Proposition
+
+> “Instant replay and AI-assisted review for gymnastics coaches.”
+
+The app is NOT:
+
+* an automated judging system
+* a biomechanics laboratory
+* a medical diagnostic tool
+* a physics simulation engine
+
+The app IS:
+
+* a coaching assistant
+* a video organization tool
+* a movement review tool
+* a consistency tracking tool
+
+---
+
+# Target Users
+
+## Primary Users
+
+* gymnastics coaches
+* club coaches
+* private trainers
+* small gymnastics facilities
+
+## Secondary Users
+
+* athletes
+* parents
+* strength and conditioning coaches
+
+---
+
+# Core Design Principles
+
+## 1. Reliability First
+
+Stable outputs are more important than advanced AI.
+
+## 2. Fast Workflow
+
+The app must work naturally during live coaching sessions.
+
+## 3. Mobile-Native Experience
+
+Designed for use while standing on the gym floor.
+
+## 4. Offline-First
+
+Core functionality should not require internet.
+
+## 5. Human-in-Control
+
+Users must be able to:
+
+* edit clips
+* correct errors
+* add notes
+* override AI outputs
+
+---
+
+# Recommended Technology Stack
+
+## Cross-Platform Framework
+
+### Recommended
+
+* Flutter
+
+Why:
+
+* strong iOS + Android support
+* excellent performance
+* mature camera support
+* strong rendering performance
+* easier single-codebase maintenance
+
+Alternative:
+
+* React Native
+
+Flutter is preferred due to better animation/rendering consistency.
+
+---
+
+# AI / ML Runtime
+
+## Recommended Primary Runtime
+
+### ONNX Runtime Mobile
+
+Benefits:
+
+* optimized mobile inference
+* supports quantized models
+* works on Android and iOS
+* lower overhead than browser-based inference
+
+Alternative options:
+
+* TensorFlow Lite
+* CoreML (iOS-specific acceleration)
+
+---
+
+# Recommended Model Strategy
+
+## Use Small Quantized Models
+
+Avoid:
+
+* large transformer models
+* giant multimodal models
+* cloud-dependent inference
+
+Target:
+
+* fast inference
+* low battery use
+* low RAM usage
+
+---
+
+# MVP Features
+
+# 1. Video Capture
+
+## Requirements
+
+* record practice attempts
+* support slow-motion capture where available
+* support landscape orientation
+* automatic clip saving
+* local device storage
+
+## Important Constraints
+
+Do NOT attempt:
+
+* continuous heavy inference during recording
+* real-time advanced 3D processing
+
+---
+
+# 2. Automatic Clip Extraction
+
+## Goal
+
+Automatically split long recordings into individual attempts.
+
+## Inputs
+
+* motion intensity
+* pose velocity
+* athlete movement start/end
+
+## Processing Strategy
+
+Perform lightweight analysis:
+
+* after recording
+* or during idle moments
+
+NOT continuously at high quality.
+
+## Output
+
+* individual clips
+* sortable timeline
+* athlete-linked clips
+
+---
+
+# 3. Pose Overlay
+
+## Goal
+
+Overlay a stable 2D skeleton on recorded footage.
+
+## Recommended Features
+
+* joint visualization
+* trajectory traces
+* angle estimation
+* frame stepping
+
+## Technical Recommendations
+
+Use:
+
+* BlazePose
+* MoveNet
+* lightweight YOLO pose models
+
+Prefer:
+
+* lower resolution
+* temporal smoothing
+* stable tracking
+
+over maximum precision.
+
+---
+
+# 4. Side-by-Side Comparison
+
+## Goal
+
+Allow coaches to compare:
+
+* two attempts
+* athlete progression over time
+* successful vs failed attempts
+
+## Features
+
+* synchronized playback
+* scrub synchronization
+* overlay trajectories
+* frame matching
+
+## Importance
+
+This is one of the highest-value features.
+
+---
+
+# 5. Landing Review
+
+## Goal
+
+Analyze landing quality using lightweight heuristics.
+
+## Metrics
+
+* stabilization time
+* landing drift
+* step count
+* torso lean
+* knee collapse tendency
+
+## Important Note
+
+Metrics should be presented as:
+
+* indicators
+* trends
+* approximations
+
+NOT precise biomechanical measurements.
+
+---
+
+# 6. Session Organization
+
+## Features
+
+* athlete profiles
+* session grouping
+* tags
+* favorites
+* notes
+* attempt history
+
+## Importance
+
+This transforms the app from:
+
+“cool AI demo”
+
+into:
+
+“daily coaching workflow tool.”
+
+---
+
+# 7. Coach Annotation Tools
+
+## Required Features
+
+* draw on frames
+* add comments
+* slow playback
+* frame stepping
+* favorite attempts
+* clip trimming
+
+## Importance
+
+Critical for trust.
+
+Users must always remain in control.
+
+---
+
+# Features Explicitly Excluded From Mobile MVP
+
+The following should NOT be part of the first mobile release.
+
+## Excluded Features
+
+* automated judging
+* D-score estimation
+* advanced 3D reconstruction
+* physics simulation
+* force estimation
+* injury prediction
+* wearable integration
+* multi-athlete scene analysis
+* real-time full-resolution inference
+* advanced generative AI coaching
+
+These dramatically increase:
+
+* complexity
+* battery use
+* instability
+* support burden
+
+---
+
+# Mobile AI Architecture
+
+# Recommended Processing Pipeline
+
+## Phase 1 — Recording
+
+During recording:
+
+* lightweight tracking only
+* no heavy inference
+* minimal CPU/GPU usage
+
+## Phase 2 — Deferred Analysis
+
+After clip ends:
+
+* run pose estimation
+* apply smoothing
+* calculate metrics
+* render overlays
+
+This approach greatly improves:
+
+* battery life
+* thermal performance
+* app responsiveness
+
+---
+
+# Temporal Smoothing Strategy
+
+## Required
+
+Raw pose estimation will jitter.
+
+Use:
+
+* Kalman filtering
+* moving averages
+* confidence-based smoothing
+* joint continuity constraints
+
+This is essential.
+
+---
+
+# Depth Sensing Strategy
+
+# IMPORTANT
+
+The mobile app should NOT depend on advanced monocular depth reconstruction.
+
+Instead:
+
+* use depth only as a helper signal
+* focus on stability improvements
+* treat outputs as approximate
+
+---
+
+# Recommended Depth Uses
+
+## 1. Subject Separation
+
+Improve athlete/background separation.
+
+## 2. Pose Stabilization
+
+Reduce tracking jitter.
+
+## 3. Floor Plane Estimation
+
+Improve landing analysis.
+
+## 4. Relative Spatial Ordering
+
+Help determine body configuration.
+
+---
+
+# LiDAR Strategy
+
+## Optional Enhancement Only
+
+Some devices support LiDAR.
+
+Examples:
+
+* iPhone Pro
+* iPad Pro
+
+Use LiDAR only for:
+
+* enhanced floor estimation
+* improved scaling
+* improved separation
+
+The app must NEVER require LiDAR.
+
+---
+
+# Camera Guidance System
+
+## Extremely Important
+
+Good input quality is more valuable than advanced AI.
+
+The app should guide users toward:
+
+* stable tripod placement
+* proper lighting
+* side-angle positioning
+* adequate distance
+* landscape orientation
+
+---
+
+# Performance Targets
+
+## Desired Targets
+
+### Recording
+
+* stable 30 FPS UI
+* no overheating during standard sessions
+
+### Processing
+
+* analysis within a few seconds
+* responsive scrubbing
+* smooth playback
+
+### Battery
+
+* usable through long training sessions
+
+---
+
+# Data Storage Strategy
+
+## Local First
+
+Store:
+
+* clips
+* metadata
+* athlete data
+* annotations
+
+on-device first.
+
+## Optional Cloud Backup
+
+Possible future enhancement.
+
+NOT required for MVP.
+
+---
+
+# Privacy Strategy
+
+## Important
+
+Youth athlete footage may be sensitive.
+
+Recommendations:
+
+* local processing by default
+* minimal cloud dependency
+* explicit export controls
+* strong privacy messaging
+
+This may become a competitive advantage.
+
+---
+
+# Recommended MVP Development Order
+
+# Phase 1 — Foundation
+
+Build:
+
+* camera recording
+* clip management
+* athlete organization
+* playback system
+
+## Goal
+
+Stable coaching workflow.
+
+---
+
+# Phase 2 — AI Basics
+
+Add:
+
+* pose estimation
+* overlays
+* simple smoothing
+* trajectory traces
+
+## Goal
+
+Reliable visual analysis.
+
+---
+
+# Phase 3 — Coaching Features
+
+Add:
+
+* side-by-side comparison
+* landing review
+* annotations
+* trend tracking
+
+## Goal
+
+Daily coach usability.
+
+---
+
+# Phase 4 — Enhanced Intelligence
+
+Later additions:
+
+* improved temporal smoothing
+* optional depth assistance
+* apparatus-aware tracking
+* advanced consistency metrics
+
+Only after stability is proven.
+
+---
+
+# Success Metrics
+
+The mobile app succeeds if coaches:
+
+* use it repeatedly during training
+* save time reviewing footage
+* trust the outputs
+* can quickly compare attempts
+* find the workflow faster than standard phone video review
+
+The app does NOT need:
+
+* perfect AI
+* perfect biomechanics
+* exact physics
+
+to provide significant coaching value.
+
+---
+
+# Final Strategic Recommendation
+
+The strongest version of this product is:
+
+* lightweight
+* stable
+* coach-centered
+* privacy-first
+* mobile-native
+
+The project should focus on becoming:
+
+> the fastest and easiest way for gymnastics coaches to review and organize athlete attempts.
+
+That is a realistic and commercially viable direction for a mobile application.
