@@ -57,6 +57,7 @@ Trust requires control. The AI will fail occasionally, and professional tools mu
 
 * **Frame Stepping:** High-precision, frame-by-frame scrubbing.
 * **Correction:** The ability to manually correct an AI-tracked joint point or edit the start/end time of an auto-generated clip. *Note: Manual joint correction on mobile screens requires careful UX prototyping (e.g., avoiding fiddly touch targets during playback).*
+* **Correction Feedback Loop:** Explicitly defining that human corrections are used strictly to override data for that specific clip's metadata (improving the athlete's immediate metrics). They are *not* immediately fed back to fine-tune the local base models (RTMPose), which avoids unpredictable model drift.
 * **Tagging & Notes:** Adding manual coach notes, drawing tools (lines, angles, circles) over specific frames, and custom tagging (e.g., "Needs tighter tuck").
 * **Export & Sharing:** A simple "share annotated clip" flow (to WhatsApp, email, AirDrop) allowing coaches to seamlessly share feedback with athletes and parents.
 

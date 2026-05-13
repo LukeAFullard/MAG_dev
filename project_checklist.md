@@ -14,7 +14,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 *Setting up the local-first environment and core processing pipeline.*
 
 - [ ] **2.1. Initialize Desktop-First Environment:** Set up a local-first web/desktop wrapper (e.g., Electron or local web server) optimized for laptop usage. *(Ref: 01_goals_and_background.md - Differentiation)*
-- [ ] **2.2. Setup Local Database:** Implement a local database (SQLite or Realm) to store raw per-session metric distributions and athlete metadata. *(Ref: 02_architecture.md - Local Device Sovereignty)*
+- [ ] **2.2. Setup Local Database & Storage Lifecycle:** Implement a local database (SQLite or Realm) to store raw per-session metric distributions and athlete metadata. Implement automated pruning policies for high-framerate video. *(Ref: 02_architecture.md - Local Device Sovereignty)*
 - [ ] **2.3. Implement WASM/WebGPU Inference Engine:** Integrate Transformers.js with WebGPU support for local inference execution. *(Ref: 02_architecture.md - Technical Stack)*
 - [ ] **2.4. Establish the 3-Pass Processing Pipeline:** Scaffold the asynchronous workflow architecture:
   - Pass 1: Motion detection + auto-clip extraction (Fast)
@@ -27,7 +27,9 @@ This document outlines the sequential step-by-step implementation plan for the M
 
 - [ ] **3.1. Build Capture Guidelines UI:** Create onboarding screens recommending tripod use, side-angle capture, and proper lighting. *(Ref: 03_phase_0.md - Encouraging Controlled Capture)*
 - [ ] **3.2. Implement Camera Calibration Workflow:** Build a one-button "Calibrate Floor" tool using a simple reference (gymnast standing still) to establish perspective. *(Ref: 03_phase_0.md - Camera Calibration Workflow)*
-- [ ] **3.3. Develop Hardware Profiling Tool:** Create a WebGPU benchmark script to test the machine's capabilities and select the appropriate model size. *(Ref: 03_phase_0.md - Technical Environment Profiling)*
+- [ ] **3.3. Implement Calibration Fail-safes:** Add background motion detection to alert the user or auto-recover if the camera is bumped mid-session. *(Ref: 03_phase_0.md - Calibration Fail-safes)*
+- [ ] **3.4. Curate Ground Truth Dataset:** Assemble and annotate a baseline video dataset (e.g., 100-200 attempts) with expert human judges for metric correlation. *(Ref: 03_phase_0.md - Ground Truth Validation)*
+- [ ] **3.5. Develop Hardware Profiling Tool:** Create a WebGPU benchmark script to test the machine's capabilities and select the appropriate model size. *(Ref: 03_phase_0.md - Technical Environment Profiling)*
 
 ## Group 4: Phase 1 - Reliable Core (MVP Features)
 *Building the minimum viable product based on the 3-pass pipeline.*
@@ -38,7 +40,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 - [ ] **4.4. Build Side-by-Side Comparison UI:** Implement synchronized playback tools, anchor frame syncing, and overlay modes. *(Ref: 04_phase_1.md - Side-by-Side Comparison Tools)*
 - [ ] **4.5. Implement Pass 3: Landing Analysis Engine:** Calculate landing stability, step count, lateral drift, and knee collapse tendency using floor plane constraints. *(Ref: 04_phase_1.md - Specialized Landing Analysis)*
 - [ ] **4.6. Build Session Analytics Dashboards:** Create UI for multi-athlete management, attempt categorization, and video-linked drill-down from data points. *(Ref: 04_phase_1.md - Session Analytics & Management)*
-- [ ] **4.7. Add Manual Annotation Tools:** Implement frame stepping, point editing/correction, coach drawing overlays, and tagging. *(Ref: 07_additional_features.md - Manual Annotation Tools)*
+- [ ] **4.7. Add Manual Annotation Tools:** Implement frame stepping, point editing/correction, coach drawing overlays, and tagging. Ensure the correction feedback loop overrides metadata without directly fine-tuning local base models. *(Ref: 07_additional_features.md - Manual Annotation Tools, 04_phase_1.md - Correction Feedback Loop)*
 
 ## Group 5: Phase 2 - Enhanced Motion Intelligence
 *Improving the stability and realism of the tracking data.*

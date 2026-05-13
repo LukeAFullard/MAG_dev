@@ -17,6 +17,9 @@ Unlike cloud-centric apps that treat the browser or mobile app as a "thin client
 *
 **Asset Management:** Large video files are processed and "pruned" locally into short, manageable clips. The system groups these clips by skill without ever uploading raw, sensitive footage to a server.
 
+*
+**Storage Lifecycle & Pruning:** Because high-framerate video (e.g., 120fps/240fps) rapidly consumes disk space, the system employs aggressive, automated lifecycle management. Coaches can set auto-archive/auto-delete policies (e.g., "Delete raw video after 7 days, keep AI-extracted metadata and annotations indefinitely"). Cloud-syncing for long-term historical archives can be optionally enabled.
+
 
 
 ### 2. Local Hardware Inference
