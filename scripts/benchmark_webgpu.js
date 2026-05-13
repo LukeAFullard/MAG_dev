@@ -1,4 +1,4 @@
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers';
 
 // Log utility
 function log(message, type = 'info') {
@@ -62,12 +62,7 @@ async function runBenchmark() {
     const hasWebGPU = await checkWebGPU();
 
     // Enable WebGPU for transformers.js
-    if (hasWebGPU) {
-        env.backends.onnx.wasm.numThreads = 1; // Often needed for webgpu backend
-        env.backends.onnx.wasm.simd = true;
-        // The proper way in v3 is to pass device: 'webgpu', but in v2 it's experimental
-        // We'll configure env just in case.
-    } else {
+    if (!hasWebGPU) {
         log("Cannot run full benchmark without WebGPU. Using WASM fallback.", "warning");
     }
 
@@ -78,7 +73,7 @@ async function runBenchmark() {
         // Use a lightweight model for benchmarking
         // resnet-50 is standard for vision benchmarking
         let classifier = await pipeline('image-classification', 'Xenova/resnet-50', {
-            // device: hasWebGPU ? 'webgpu' : 'wasm' // If supported in this v2 build
+            device: hasWebGPU ? 'webgpu' : 'wasm',
         });
 
         log("Model loaded. Running warmup inference passes...", "info");

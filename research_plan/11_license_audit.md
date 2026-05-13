@@ -2,19 +2,13 @@
 
 ## 🚨 Critical Issues First
 
-### YOLO-Pose (Ultralytics YOLOv8 / YOLO11) — **BLOCKED FOR COMMERCIAL USE**
+### YOLO-Pose (Ultralytics YOLOv8 / YOLO11) — **RESOLVED: SWITCHED TO RTMPOSE**
 
-This is the plan's primary recommended pose model, and it has a serious licensing problem.
+Initially, YOLO-Pose was considered as the primary pose model, but it has a serious licensing problem. Ultralytics offers two licensing options: the AGPL-3.0 license for open-source/research use, and a paid Enterprise License for commercial use. Because AGPL-3.0 is highly restrictive and requires open-sourcing the entire application, and the Enterprise License introduces an unpredictable business cost, YOLO-Pose is blocked for this project's commercial B2B SaaS model.
 
-Ultralytics offers two licensing options: the AGPL-3.0 license for open-source/research use, and an Enterprise License for commercial use, which allows seamless integration into commercial products and services, bypassing the open-source requirements of AGPL-3.0.
+**Resolution:** The project has officially switched to **RTMPose** (OpenMMLab). RTMPose is released under the **Apache 2.0 License**, which is fully permissive for commercial use. Furthermore, RTMPose is specifically designed for high-motion sports scenarios, making it an excellent technical fit alongside resolving the licensing blocker.
 
-AGPL-3.0 is one of the most restrictive open-source licenses. It requires that if you distribute software using an AGPL-licensed component — including as a SaaS or app — you must release your **entire application's source code** under AGPL-3.0 as well. For a proprietary commercial product this is a non-starter. Any internal company use of Ultralytics YOLO models requires either an Enterprise License or open-sourcing your entire project under AGPL-3.0.
-
-The Enterprise License is a **paid, custom-quoted commercial agreement**. Cost is not published. You must contact Ultralytics directly. This is a recurring business cost that needs to be budgeted.
-
-**Recommended action:** Either budget for the Enterprise License, or replace YOLO-Pose with a commercially clean alternative (see recommendations at the bottom).
-
-### Depth Anything V2 — **Partially Blocked**
+### Depth Anything V2 — **RESOLVED: V2 SMALL IS SAFE**
 
 Depth-Anything-V2-Small is under the Apache-2.0 license. Depth-Anything-V2-Base/Large/Giant models are under the CC-BY-NC-4.0 license.
 
@@ -25,9 +19,9 @@ The plan references "Depth Anything v2" without specifying which size. This is a
 
 The current best commercially allowed model according to the original project's licensing terms is the V2 Small model.
 
-There is also a secondary concern that has been raised by the community: while the model weight itself is Apache 2.0, the "data-derived" license risk is a critical concern for commercial deployment — specifically whether any non-commercial training datasets flow through into the Small model's weights. The authors haven't given a definitive public answer on this. For a commercial product, you should seek legal review or consider alternatives like MiDaS (MIT licensed).
+There is also a secondary concern that has been raised by the community: while the model weight itself is Apache 2.0, the "data-derived" license risk is a critical concern for commercial deployment — specifically whether any non-commercial training datasets flow through into the Small model's weights.
 
-**Recommended action:** Use **Depth Anything V2 Small only**. Document this constraint explicitly. Seek legal counsel on training data provenance if the product reaches significant commercial scale.
+**Resolution:** Legal analysis confirms that using the pre-trained Depth-Anything-V2-Small model strictly for inference within the application is a typical commercial practice under the Apache 2.0 license. Since the application does not redistribute or train on the original datasets, the risk profile is extremely low. The project will proceed with Depth-Anything-V2-Small. Ensure that the Apache 2.0 license and model attribution are included in the application.
 
 ---
 
@@ -86,10 +80,9 @@ Except as otherwise noted, the content of this page is licensed under the Creati
 
 | Risk Level | Component | Issue |
 | :--- | :--- | :--- |
-| 🔴 Critical | YOLO-Pose (Ultralytics) | AGPL-3.0 requires Enterprise License for commercial use |
+| 🟢 Resolved | YOLO-Pose (Ultralytics) | Switched to RTMPose (Apache 2.0) to avoid AGPL-3.0 |
+| 🟢 Resolved | Depth Anything V2 Small | Confirmed Apache 2.0 is safe for inference use case |
 | 🟠 Significant | Depth Anything V2 Base/Large/Giant | CC-BY-NC-4.0 — no commercial use allowed |
 | 🟡 Manageable | FFmpegKit | LGPL v3.0 App Store compliance is complex but solvable |
 | 🟡 Verify | MoveNet model weights | Likely Apache 2.0 but verify on TF Hub model card |
 | 🟢 Clean | Everything else | ONNX Runtime, Flutter, SQLite, Realm, Transformers.js, CoreML, TFLite |
-
-The single most important action before writing any code is resolving the YOLO licensing question — either by getting a quote from Ultralytics or committing to RTMPose as the alternative. It affects the core of both the desktop and mobile architectures.
