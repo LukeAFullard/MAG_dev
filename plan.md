@@ -14,7 +14,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 *Setting up the local-first environment and core processing pipeline.*
 
 - [x] **2.1. Initialize Desktop-First Environment:** Set up a local-first web/desktop wrapper (e.g., Electron or local web server) optimized for laptop usage. *(Ref: 01_goals_and_background.md - Differentiation)*
-- [ ] **2.2. Setup Local Database & Storage Lifecycle:** Implement a local database (SQLite or Realm) to store raw per-session metric distributions and athlete metadata. Implement automated pruning policies for high-framerate video. *(Ref: 02_architecture.md - Local Device Sovereignty)*
+- [x] **2.2. Setup Local Database & Storage Lifecycle:** Implement a local database (SQLite or Realm) to store raw per-session metric distributions and athlete metadata. Implement automated pruning policies for high-framerate video. *(Ref: 02_architecture.md - Local Device Sovereignty)*
 - [ ] **2.3. Implement WASM/WebGPU Inference Engine:** Integrate Transformers.js with WebGPU support for local inference execution. *(Ref: 02_architecture.md - Technical Stack)*
 - [ ] **2.4. Establish the 3-Pass Processing Pipeline:** Scaffold the asynchronous workflow architecture:
   - Pass 1: Motion detection + auto-clip extraction (Fast)

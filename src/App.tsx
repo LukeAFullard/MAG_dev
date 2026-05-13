@@ -1,27 +1,85 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react';
+import { initDb, addAthlete, getAthletes, pruneOldVideos } from './db';
 
 const App: React.FC = () => {
+  const [dbStatus, setDbStatus] = useState<string>('Initializing...');
+  const [athletes, setAthletes] = useState<any[]>([]);
+  const [newAthleteName, setNewAthleteName] = useState('');
+
+  useEffect(() => {
+    async function setup() {
+      try {
+        await initDb();
+        setDbStatus('Connected');
+        await fetchAthletes();
+        await pruneOldVideos(); // Trigger pruning on startup
+      } catch (err: any) {
+        setDbStatus(`Error: ${err.message}`);
+      }
+    }
+    setup();
+  }, []);
+
+  const fetchAthletes = async () => {
+    const list = await getAthletes();
+    setAthletes(list);
+  };
+
+  const handleAddAthlete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAthleteName.trim()) return;
+    await addAthlete(newAthleteName);
+    setNewAthleteName('');
+    await fetchAthletes();
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-blue-600 text-white p-4 shadow-md">
+      <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
         <h1 className="text-2xl font-bold">MAG_dev: Gymnastics Analysis Assistant</h1>
+        <div className="text-sm">DB Status: <span className="font-mono bg-blue-800 px-2 py-1 rounded">{dbStatus}</span></div>
       </header>
       <main className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Welcome to the Desktop-First Environment</h2>
-          <p className="text-gray-700 mb-6">
-            This is the initial scaffold for the local-first gymnastics video analysis application.
-            From here, we will implement the 3-pass processing pipeline and local storage.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-blue-200 rounded p-4 bg-blue-50">
-              <h3 className="font-bold text-blue-800">Pass 1: Auto-Clip</h3>
-              <p className="text-sm text-blue-600 italic">Immediate motion detection and trimming.</p>
+        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-8">
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Welcome to the Desktop-First Environment</h2>
+            <p className="text-gray-700 mb-6">
+              This is the initial scaffold for the local-first gymnastics video analysis application.
+              From here, we will implement the 3-pass processing pipeline and local storage.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border border-blue-200 rounded p-4 bg-blue-50">
+                <h3 className="font-bold text-blue-800">Pass 1: Auto-Clip</h3>
+                <p className="text-sm text-blue-600 italic">Immediate motion detection and trimming.</p>
+              </div>
+              <div className="border border-green-200 rounded p-4 bg-green-50">
+                <h3 className="font-bold text-green-800">Pass 2: Pose Analysis</h3>
+                <p className="text-sm text-green-600 italic">Background skeletal tracking and COM extraction.</p>
+              </div>
             </div>
-            <div className="border border-green-200 rounded p-4 bg-green-50">
-              <h3 className="font-bold text-green-800">Pass 2: Pose Analysis</h3>
-              <p className="text-sm text-green-600 italic">Background skeletal tracking and COM extraction.</p>
-            </div>
+          </div>
+
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4">Athletes</h2>
+            <form onSubmit={handleAddAthlete} className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newAthleteName}
+                onChange={e => setNewAthleteName(e.target.value)}
+                placeholder="New Athlete Name"
+                className="border p-2 rounded flex-1"
+              />
+              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Athlete</button>
+            </form>
+            {athletes.length === 0 ? (
+              <p className="text-gray-500 italic">No athletes found.</p>
+            ) : (
+              <ul className="list-disc pl-5">
+                {athletes.map(a => (
+                  <li key={a.id} className="text-gray-800">{a.name} (Added: {new Date(a.created_at).toLocaleDateString()})</li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </main>
