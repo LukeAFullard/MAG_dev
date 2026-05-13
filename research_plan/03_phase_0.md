@@ -8,7 +8,7 @@ Phase 0 is the "Environment and Capture Calibration" stage. To extract reliable 
 
 To ensure that side-by-side comparisons and trajectory tracking are consistent, the application needs an understanding of the camera's perspective and the scale of the environment.
 
-* **Perspective Estimation:** A simple setup workflow where the user points the camera at floor markers or known apparatus points. The app uses these to estimate the camera's perspective relative to the ground plane.
+* **Perspective Estimation:** A zero-friction, one-button "Calibrate Floor" workflow designed for non-technical coaches (e.g., automatically established by having the gymnast stand still for a second or detecting a simple ball drop). The app uses this to estimate the camera's perspective relative to the ground plane without requiring a complex multi-step tapping workflow.
 * **Apparatus Anchors:** Utilizing the known, fixed geometry of apparatuses (e.g., floor is planar, vault table height is fixed, high bar location is constant).
 * **Benefits:** This greatly improves scale consistency across different days, enhances landing plane estimation, and makes trajectory tracking much more reliable than trying to infer scale blindly.
 
@@ -42,5 +42,5 @@ Since the architecture is "local-first," Phase 0 still includes a hardware hands
 ### Implementation Step
 
 1. **Capture Onboarding UI:** Build a simple, intuitive onboarding flow that guides coaches on camera placement, tripod usage, and lighting.
-2. **Calibration Tool:** Create a manual tool where coaches can tap corners of the mat or known apparatus points on the screen to establish a perspective baseline for that session.
+2. **Calibration Tool:** Build a frictionless, one-button "Calibrate Floor" tool that uses a simple reference (like the gymnast standing still) to establish a perspective baseline for that session, avoiding complex multi-step tapping workflows.
 3. **Hardware Check:** Implement the WebGPU performance benchmark script.

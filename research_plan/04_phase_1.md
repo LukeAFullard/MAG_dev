@@ -10,6 +10,7 @@ This is the highest-value, most achievable feature for a coach's daily workflow.
 
 * **The Problem:** Coaches waste hours scrolling through long practice recordings to find specific attempts.
 * **The Solution:** The system automatically processes a raw video file or live stream, detects the athlete, identifies movement start/end points using pose velocity and motion thresholds, and trims attempts into distinct clips.
+* **Prototyping & De-risking:** A simple prototype (one camera angle) will be built first to validate auto-clip accuracy with real coaches, ensuring false positives (like spotters moving or background gymnasts) are aggressively minimized via "Chalk & Noise" filtering.
 * **Organization:** Clips are automatically grouped by broad categories (e.g., "Vaults", "Tumbling Passes", "Dismounts") based on apparatus constraint markers or simple motion profiles.
 
 ### 2. 2D Pose Tracking & Overlay
@@ -41,10 +42,11 @@ Landing quality impacts execution scoring, consistency, and injury prevention. B
     * **Knee Collapse Tendency:** Monitoring the minimum knee angle upon impact to flag potentially dangerous or heavily deducted "soft" landings.
     * **Torso Lean:** Angle of the trunk relative to vertical upon impact.
 
-### 5. Session Analytics
+### 5. Session Analytics & Management
 
-Transforming raw clips into actionable, daily coaching insights.
+Transforming raw clips into actionable, daily coaching insights, built for real gym environments.
 
+* **Multi-Athlete Session Management:** Frictionless switching between athlete profiles mid-session (1-2 taps max), acknowledging that coaches often manage 6–10 athletes at a time.
 * **Dashboards:** Simple visualizations showing attempts per skill category, success/failure tagging (manual or semi-automated), and consistency scores across a session.
 * **Video-Linked Drill-Down:** Tapping any data point on a graph instantly opens the specific video clip of that attempt.
 * **Longitudinal Tracking:** Tracking landing stability or consistency scores across weeks to flag fatigue or monitor progression.
@@ -54,8 +56,9 @@ Transforming raw clips into actionable, daily coaching insights.
 Trust requires control. The AI will fail occasionally, and professional tools must allow for human override.
 
 * **Frame Stepping:** High-precision, frame-by-frame scrubbing.
-* **Correction:** The ability to manually correct an AI-tracked joint point or edit the start/end time of an auto-generated clip.
+* **Correction:** The ability to manually correct an AI-tracked joint point or edit the start/end time of an auto-generated clip. *Note: Manual joint correction on mobile screens requires careful UX prototyping (e.g., avoiding fiddly touch targets during playback).*
 * **Tagging & Notes:** Adding manual coach notes, drawing tools (lines, angles, circles) over specific frames, and custom tagging (e.g., "Needs tighter tuck").
+* **Export & Sharing:** A simple "share annotated clip" flow (to WhatsApp, email, AirDrop) allowing coaches to seamlessly share feedback with athletes and parents.
 
 ### Realistic Milestone
 

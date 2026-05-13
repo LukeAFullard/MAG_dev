@@ -113,6 +113,18 @@ Alternative:
 
 Flutter is preferred due to better animation/rendering consistency.
 
+## Video Processing & Format Handling
+
+### Recommended
+
+* FFmpeg (via `ffmpeg_flutter`)
+
+Why:
+* Essential for handling default OS formats (HEVC on iOS, H.264/H.265 on Android).
+* Required for precise clip trimming.
+* Enables slow-motion frame extraction (120/240fps).
+* Facilitates annotation burn-in for exporting and sharing.
+
 ---
 
 # AI / ML Runtime
@@ -137,7 +149,12 @@ Alternative options:
 
 # Recommended Model Strategy
 
-## Use Small Quantized Models
+## Pinned Model Selection for MVP
+
+To avoid testing overhead and ensure reliable performance, the mobile v1 will commit to:
+
+* **iOS:** MoveNet Thunder (utilizing CoreML acceleration for fast performance).
+* **Android:** YOLOv8-pose nano (quantized, ~6MB footprint).
 
 Avoid:
 
@@ -150,6 +167,11 @@ Target:
 * fast inference
 * low battery use
 * low RAM usage
+
+## Offline Model Management Strategy
+
+* Models will be shipped with the app bundle or securely downloaded on the first run.
+* Ensure stringent model size limits (e.g., maintaining the ~6MB constraint of YOLOv8-nano) to minimize footprint.
 
 ---
 
@@ -218,11 +240,7 @@ Overlay a stable 2D skeleton on recorded footage.
 
 ## Technical Recommendations
 
-Use:
-
-* BlazePose
-* MoveNet
-* lightweight YOLO pose models
+Use the pinned models (MoveNet Thunder for iOS, YOLOv8-pose nano for Android).
 
 Prefer:
 
@@ -234,7 +252,7 @@ over maximum precision.
 
 ---
 
-# 4. Side-by-Side Comparison
+# 4. Side-by-Side Comparison (Phase 3)
 
 ## Goal
 
@@ -248,12 +266,12 @@ Allow coaches to compare:
 
 * synchronized playback
 * scrub synchronization
-* overlay trajectories
+* overlay trajectories (pre-rendered)
 * frame matching
 
-## Importance
+## Important Technical Constraint
 
-This is one of the highest-value features.
+Synced dual-stream playback of two HD clips with live pose overlays is a genuine performance challenge on mobile. Instead of live compositing, overlays must be pre-rendered as video files (using FFmpeg) to ensure smooth playback. This feature is firmly placed in Phase 3.
 
 ---
 
@@ -487,6 +505,12 @@ The app should guide users toward:
 
 * usable through long training sessions
 
+## Device Constraints & Fragmentation
+
+Android fragmentation means ONNX Runtime performs very differently on flagship vs. mid-range devices used by club coaches.
+* Minimum device specs must be established.
+* A graceful degradation path is required (e.g., automatically disabling pose overlay on low-end devices while still offering core video review and clip extraction).
+
 ---
 
 # Data Storage Strategy
@@ -563,7 +587,7 @@ Reliable visual analysis.
 
 Add:
 
-* side-by-side comparison
+* side-by-side comparison (with pre-rendered overlays, not live compositing)
 * landing review
 * annotations
 * trend tracking
