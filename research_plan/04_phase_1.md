@@ -15,9 +15,9 @@ This is the highest-value, most achievable feature for a coach's daily workflow.
 
 ### 2. 2D Pose Tracking & Overlay
 
-A visual foundation for movement analysis, explicitly marketed as "consistency tracking" rather than medical-grade measurement.
+A visual foundation for movement analysis, explicitly marketed as "consistency tracking" rather than medical-grade measurement. Because this step runs as a deferred background process, we can prioritize tracking quality over real-time constraints.
 
-* **Tracking Model:** Deploying robust 2D keypoint extraction (e.g., RTMPose via Transformers.js WebGPU) running locally.
+* **Tracking Model:** Deploying robust 2D keypoint extraction running locally. Since this is an asynchronous batch pass, we will utilize higher-quality models like RTMPose-m or RTMPose-l (via Transformers.js WebGPU) rather than lightweight variants.
 * **Visualizations:** The player displays skeletal joints, major joint angles, a Center of Mass (COM) approximation, and trajectory traces (e.g., the path of the hips during a flip).
 * **Relative Depth (Stabilization):** Utilizing lightweight monocular depth maps strictly to reduce joint jitter, handle occlusion, and improve the temporal consistency of the 2D tracking.
 

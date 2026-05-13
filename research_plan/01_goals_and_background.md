@@ -21,6 +21,7 @@ To build a viable product, the application must differentiate itself from incumb
 
 * **Target Audience:** Youth gymnastics programs and competitive clubs that lack the budget for elite multi-camera setups or full-time analysts.
 * **Differentiation:**
+    * **Desktop-First V1:** The application is explicitly built for desktop/laptop first, adopting a "drop a video in, get analysis later" pattern like video editing tools.
     * **Affordability:** Runs on standard laptops/desktops without expensive proprietary hardware.
     * **Privacy First:** The local-first architecture ensures compliance with youth privacy laws (COPPA/GDPR) by keeping all sensitive video and biometric data on-device.
     * **Workflow Automation:** Saves coaches massive amounts of time by automatically extracting and tagging clips, reducing manual video scrubbing.
@@ -65,6 +66,6 @@ The plan has been completely revised to focus on reliability, speed, and usabili
 | Component | Reality Check |
 | --- | --- |
 | **Transformers.js** | **Achievable.** V3's WebGPU support is the "missing link" for running heavy pose and tracking models on a laptop/desktop browser at optimal framerates. |
-| **RTMPose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. Replaces YOLO-Pose due to AGPL-3.0 licensing issues. |
+| **RTMPose** | **Best Choice.** Superior to MediaPipe for rapid, complex rotations (Vault/High Bar) where tracking "flicker" is common. Replaces YOLO-Pose due to AGPL-3.0 licensing issues. With deferred batch processing, we can use higher quality variants (like RTMPose-m or RTMPose-l). |
 | **Monocular Depth** | **Re-scoped.** Used strictly for relative geometry, motion assistance, and consistency enhancement—not for extracting exact real-world distances or forces. |
 | **Auto Clip Detection** | **Highly Feasible.** Can be reliably achieved using pose velocity, bounding boxes, and simple motion thresholds without needing "perfect AI." |

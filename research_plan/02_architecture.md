@@ -24,7 +24,7 @@ Unlike cloud-centric apps that treat the browser or mobile app as a "thin client
 The "intelligence" of the app—auto clip detection, pose tracking, and depth stabilization—happens entirely on the local hardware.
 
 *
-**Hardware Acceleration:** The app utilizes the laptop/desktop's **GPU** (via WebGPU and Transformers.js) to perform real-time calculations without the thermal throttling and power constraints of mobile devices.
+**Deferred Batch Processing & Hardware Acceleration:** The app utilizes the laptop/desktop's **GPU** (via WebGPU and Transformers.js) to perform calculations. Crucially, heavy pose inference is NOT real-time. By moving to a deferred batch processing model (extracting fast clips first, then running deeper pose analysis in the background), we unlock the ability to use higher-quality models (like RTMPose-m or RTMPose-l) without thermal throttling or performance stuttering.
 
 
 *
@@ -36,7 +36,7 @@ The "intelligence" of the app—auto clip detection, pose tracking, and depth st
 
 
 *
-**Zero Latency:** Because data doesn't travel to a server and back, the coach receives immediate feedback and instant clip extraction while still on the floor.
+**Asynchronous Workflow:** Because data doesn't travel to a server and back, the coach receives immediate feedback and instant clip extraction (Pass 1) while still on the floor. Deeper pose estimation (Pass 2) and constraint smoothing (Pass 3) run seamlessly in the background over a few minutes.
 
 
 
@@ -60,11 +60,21 @@ This architecture serves as a proactive guardian for sensitive environments like
 | Layer | Technology | Role in Local-First |
 | --- | --- | --- |
 | **Data Logic** | **WASM / Transformers.js** | Runs complex logic (like temporal smoothing algorithms) at near-native speeds in the browser/client. |
-| **Inference (Pose)** | **ONNX / RTMPose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently. |
+| **Inference (Pose)** | **ONNX / RTMPose** | Offloads pose estimation to the GPU, extracting 2D keypoints efficiently in a deferred batch pass (e.g., RTMPose-m or RTMPose-l). |
 | **Inference (Depth)**| **Depth Anything V2 Small** | Generates relative depth maps used for multi-frame depth stabilization and occlusion handling. (Must be Small model to comply with Apache 2.0 license). |
 | **Storage & Video** | **SQLite / FFmpegKit** | Manages the local relational data and performs frame manipulation (auto-clipping) without cloud APIs. (Note: use LGPL version, never `--enable-gpl`). |
 | **Sync (Optional)** | **Local Network Transfer** | Simple QR-code or local network transfer for syncing data (e.g., sharing a session to another coach's device). |
 
+## Revised Processing Model
+
+```
+Video Import
+    → Pass 1 (fast): Motion detection + auto-clip extraction   [seconds]
+    → Pass 2 (slow): Full pose estimation per clip             [minutes]
+    → Pass 3: Constraint engine smoothing + metric calculation [seconds]
+    → Ready for review
+```
+
 ## Why it Matters for Gymnastics
 
-In Men's Artistic Gymnastics (MAG), coaching requires rapid iteration. A local-first approach ensures that the app can process high frame rate video instantly, organize clips automatically, and allow a coach to perform side-by-side comparisons of attempts without waiting for large video files to upload, process, and return from the cloud. This transforms the app from a passive recording tool into an **active coaching assistant**.
+In Men's Artistic Gymnastics (MAG), coaching requires rapid iteration. A local-first approach ensures that the app can process high frame rate video instantly, organize clips automatically (Pass 1), and allow a coach to perform side-by-side comparisons of attempts without waiting for large video files to upload, process, and return from the cloud. The deferred background analysis (Pass 2 & 3) ensures deep tracking without interrupting the live coaching session. This transforms the app from a passive recording tool into an **active coaching assistant**.
