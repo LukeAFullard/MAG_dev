@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { initDb, addAthlete, getAthletes, pruneOldVideos } from './db';
 import { InferenceEngine } from './inference';
 import { PipelineManager, type VideoProcessingJob } from './pipeline';
+import CaptureGuidelines from './components/CaptureGuidelines';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -104,13 +105,16 @@ const App: React.FC = () => {
 
           <div className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Pipeline Simulator</h2>
-            <button
-              onClick={handleSimulateVideo}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mb-4"
-              data-testid="simulate-video-btn"
-            >
-              Simulate Video Drop
-            </button>
+            <div className="flex items-center">
+              <button
+                onClick={handleSimulateVideo}
+                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mb-4"
+                data-testid="simulate-video-btn"
+              >
+                Simulate Video Drop
+              </button>
+              <CaptureGuidelines />
+            </div>
             <div className="space-y-4">
               {jobs.map(job => (
                 <div key={job.id} className="border p-4 rounded-lg bg-gray-50 shadow-sm" data-testid="job-item">
