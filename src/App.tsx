@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { initDb, addAthlete, getAthletes, pruneOldVideos } from './db';
+import { InferenceEngine } from './inference';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
   const [athletes, setAthletes] = useState<any[]>([]);
   const [newAthleteName, setNewAthleteName] = useState('');
+  const [inferenceStatus, setInferenceStatus] = useState<string>('Initializing...');
+  const [isWebGPU, setIsWebGPU] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function setup() {
+      // Setup DB
       try {
         await initDb();
         setDbStatus('Connected');
@@ -15,6 +19,16 @@ const App: React.FC = () => {
         await pruneOldVideos(); // Trigger pruning on startup
       } catch (err: any) {
         setDbStatus(`Error: ${err.message}`);
+      }
+
+      // Setup Inference Engine
+      try {
+        const engine = InferenceEngine.getInstance();
+        await engine.init();
+        setInferenceStatus('Ready');
+        setIsWebGPU(engine.isWebGPUSupported);
+      } catch (err: any) {
+        setInferenceStatus(`Error: ${err.message}`);
       }
     }
     setup();
@@ -37,7 +51,10 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
         <h1 className="text-2xl font-bold">MAG_dev: Gymnastics Analysis Assistant</h1>
-        <div className="text-sm">DB Status: <span className="font-mono bg-blue-800 px-2 py-1 rounded">{dbStatus}</span></div>
+        <div className="flex gap-4">
+          <div className="text-sm">DB Status: <span className="font-mono bg-blue-800 px-2 py-1 rounded">{dbStatus}</span></div>
+          <div className="text-sm">Inference: <span className={`font-mono px-2 py-1 rounded ${inferenceStatus === 'Ready' ? 'bg-green-700' : 'bg-blue-800'}`}>{inferenceStatus} {isWebGPU !== null && `(${isWebGPU ? 'WebGPU' : 'WASM'})`}</span></div>
+        </div>
       </header>
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-8">
