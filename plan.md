@@ -34,7 +34,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 ## Group 4: Phase 1 - Reliable Core (MVP Features)
 *Building the minimum viable product based on the 3-pass pipeline.*
 
-- [ ] **4.1. Implement Pass 1: Auto Clip Extraction:** Build motion thresholding and pose velocity logic to detect athletes, trim attempts, and group by skill. *(Ref: 04_phase_1.md - Auto Clip Detection & Extraction)*
+- [x] **4.1. Implement Pass 1: Auto Clip Extraction:** Build motion thresholding and pose velocity logic to detect athletes, trim attempts, and group by skill. *(Ref: 04_phase_1.md - Auto Clip Detection & Extraction)*
 - [ ] **4.2. Implement Pass 2: 2D Pose Tracking (Deferred):** Integrate RTMPose-m or RTMPose-l for background batch processing to extract skeletal joints, angles, and COM trajectories. *(Ref: 04_phase_1.md - 2D Pose Tracking & Overlay)*
 - [ ] **4.3. Implement Relative Depth Maps:** Integrate the selected small depth model to improve occlusion handling and temporal consistency. *(Ref: 04_phase_1.md - Relative Depth)*
 - [ ] **4.4. Build Side-by-Side Comparison UI:** Implement synchronized playback tools, anchor frame syncing, and overlay modes. *(Ref: 04_phase_1.md - Side-by-Side Comparison Tools)*
