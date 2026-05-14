@@ -26,7 +26,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 *Ensuring the quality of input video.*
 
 - [x] **3.1. Build Capture Guidelines UI:** Create onboarding screens recommending tripod use, side-angle capture, and proper lighting. *(Ref: 03_phase_0.md - Encouraging Controlled Capture)*
-- [ ] **3.2. Implement Camera Calibration Workflow:** Build a one-button "Calibrate Floor" tool using a simple reference (gymnast standing still) to establish perspective. *(Ref: 03_phase_0.md - Camera Calibration Workflow)*
+- [x] **3.2. Implement Camera Calibration Workflow:** Build a one-button "Calibrate Floor" tool using a simple reference (gymnast standing still) to establish perspective. *(Ref: 03_phase_0.md - Camera Calibration Workflow)*
 - [ ] **3.3. Implement Calibration Fail-safes:** Add background motion detection to alert the user or auto-recover if the camera is bumped mid-session. *(Ref: 03_phase_0.md - Calibration Fail-safes)*
 - [ ] **3.4. Curate Ground Truth Dataset:** Assemble and annotate a baseline video dataset (e.g., 100-200 attempts) with expert human judges for metric correlation. *(Ref: 03_phase_0.md - Ground Truth Validation)*
 - [x] **3.5. Develop Hardware Profiling Tool:** Create a WebGPU benchmark script to test the machine's capabilities and select the appropriate model size. *(Ref: 03_phase_0.md - Technical Environment Profiling)*
