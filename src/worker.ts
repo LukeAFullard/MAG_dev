@@ -1,4 +1,4 @@
-import { pipeline, type PipelineType } from '@huggingface/transformers';
+import { pipeline, type PipelineType, RawImage } from '@huggingface/transformers';
 import { PoseDetector } from 'rtmlib-ts';
 
 // We need to keep a reference to loaded pipelines and detectors
@@ -68,6 +68,49 @@ self.addEventListener('message', async (event) => {
     }
 
     if (action === 'run') {
+       if (task === 'depth-estimation') {
+         const key = `${task}-${model}`;
+         if (!pipelines.has(key)) {
+           throw new Error(`Pipeline ${key} not loaded. Please load it first.`);
+         }
+         const pipe = pipelines.get(key);
+
+         // Process input for depth estimation
+         let imageInput = input;
+         if (input instanceof ImageBitmap) {
+             // Create an offscreen canvas to extract ImageData from ImageBitmap
+             const canvas = new OffscreenCanvas(input.width, input.height);
+             const ctx = canvas.getContext('2d');
+             if (!ctx) throw new Error("Could not get 2d context");
+             ctx.drawImage(input, 0, 0);
+             imageInput = ctx.getImageData(0, 0, input.width, input.height);
+         }
+
+         if (imageInput instanceof ImageData) {
+             // Convert ImageData to RawImage required by Transformers.js
+             imageInput = new RawImage(
+                 new Uint8ClampedArray(imageInput.data),
+                 imageInput.width,
+                 imageInput.height,
+                 4 // ImageData is always RGBA
+             );
+         }
+
+         const result = await pipe(imageInput);
+         // The predicted depth is usually in result.depth as a RawImage.
+         // We can send the data back as an array.
+         let outData = result;
+         if (result && result.depth) {
+            outData = {
+               width: result.depth.width,
+               height: result.depth.height,
+               data: Array.from(result.depth.data)
+            };
+         }
+         self.postMessage({ id, status: 'success', data: outData });
+         return;
+       }
+
        if (task === 'pose-estimation' && model === 'rtmw') {
          const key = `${task}-${model}`;
          if (!detectors.has(key)) {
