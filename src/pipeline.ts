@@ -79,7 +79,7 @@ export class PipelineManager {
       await this.pass1_autoClipExtraction(jobId, file);
 
       // Pass 2
-      this.updateJob(jobId, { status: 'pass2', progress: 33, message: 'Running Pass 2: Full Pose Estimation' });
+    this.updateJob(jobId, { status: 'pass2', progress: 33, message: 'Running Pass 2: Full Pose & Depth Estimation' });
       await this.pass2_poseEstimation(jobId, file);
 
       // Pass 3
@@ -151,27 +151,38 @@ export class PipelineManager {
 
     try {
         await engine.loadModel('pose-estimation', 'rtmw');
+        await engine.loadModel('depth-estimation', 'onnx-community/depth-anything-v2-small');
     } catch (e: any) {
-        console.warn('Could not load RTMW model in pipeline simulation:', e);
+        console.warn('Could not load models in pipeline simulation:', e);
     }
 
     if (file) {
       const { PoseExtractor } = await import('./utils/poseExtraction');
+      const { DepthExtractor } = await import('./utils/depthExtraction');
       const poseExtractor = new PoseExtractor();
+      const depthExtractor = new DepthExtractor();
       const totalClips = job.clips.length;
 
-      const clipsWithPoses: (ExtractedClip & { poses?: any[] })[] = [];
+      const clipsWithPoses: (ExtractedClip & { poses?: any[], depths?: any[] })[] = [];
 
       for (let i = 0; i < job.clips.length; i++) {
         const clip = job.clips[i];
         try {
+          // We can run pose and depth estimation sequentially or in parallel
+          // Running sequentially to avoid memory overload in worker
           const poses = await poseExtractor.extract(file, clip, engine, (clipProgress) => {
-            const overallProgress = ((i + (clipProgress / 100)) / totalClips) * 100;
+            const overallProgress = ((i + (clipProgress / 200)) / totalClips) * 100; // Half progress for pose
             this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });
           });
-          clipsWithPoses.push({ ...clip, poses });
+
+          const depths = await depthExtractor.extract(file, clip, engine, (clipProgress) => {
+            const overallProgress = ((i + 0.5 + (clipProgress / 200)) / totalClips) * 100; // Half progress for depth
+            this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });
+          });
+
+          clipsWithPoses.push({ ...clip, poses, depths });
         } catch (e) {
-          console.error(`Failed to extract poses for clip ${clip.id}`, e);
+          console.error(`Failed to extract data for clip ${clip.id}`, e);
           clipsWithPoses.push(clip);
         }
       }
