@@ -20,9 +20,21 @@ test('camera calibration workflow works', async ({ page }) => {
   await expect(successStatus).toBeVisible({ timeout: 5000 });
   await expect(page.locator('text=Calibration Successful! Floor plane established.')).toBeVisible();
 
-  // Recalibrate
-  const resetBtn = page.locator('[data-testid="reset-calibration-btn"]');
-  await resetBtn.click();
+  // Simulate Bump
+  const simulateBumpBtn = page.locator('[data-testid="simulate-bump-btn"]');
+  await expect(simulateBumpBtn).toBeVisible();
+  await simulateBumpBtn.click();
+
+  // Verify bumped state
+  const bumpedStatus = page.locator('[data-testid="calibration-bumped"]');
+  await expect(bumpedStatus).toBeVisible();
+  await expect(page.locator('text=Calibration Error')).toBeVisible();
+  await expect(page.locator('text=Camera movement detected! Metrics may be skewed. Please recalibrate.')).toBeVisible();
+
+  // Recalibrate Now
+  const recalibrateNowBtn = page.locator('[data-testid="recalibrate-alert-btn"]');
+  await expect(recalibrateNowBtn).toBeVisible();
+  await recalibrateNowBtn.click();
 
   // Verify it's back to idle
   await expect(calibrateBtn).toBeVisible();
