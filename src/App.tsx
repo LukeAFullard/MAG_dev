@@ -6,6 +6,7 @@ import CaptureGuidelines from './components/CaptureGuidelines';
 import CameraCalibration from './components/CameraCalibration';
 import SideBySideComparison from './components/SideBySideComparison';
 import SessionDashboard from './components/SessionDashboard';
+import ManualAnnotation from './components/ManualAnnotation';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -125,6 +126,10 @@ const App: React.FC = () => {
           </div>
 
           <SideBySideComparison />
+
+          <div className="mb-8">
+            <ManualAnnotation />
+          </div>
 
           <div className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Pipeline Simulator</h2>
