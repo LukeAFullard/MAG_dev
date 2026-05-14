@@ -230,14 +230,22 @@ export class PipelineManager {
     }
 
     const { LandingAnalyzer } = await import('./utils/landingAnalysis');
+    const { TemporalSmoother } = await import('./utils/temporalSmoothing');
     const analyzer = new LandingAnalyzer();
+    const smoother = new TemporalSmoother();
 
     const updatedClips = job.clips.map(clip => {
+      let updatedClip = { ...clip };
       if (clip.poses && clip.poses.length > 0) {
-        const metrics = analyzer.analyze(clip.poses);
-        return { ...clip, landingMetrics: metrics };
+        // Apply temporal smoothing to the poses
+        const smoothedPoses = smoother.smoothPoses(clip.poses);
+        updatedClip.poses = smoothedPoses;
+
+        // Calculate metrics using the smoothed poses
+        const metrics = analyzer.analyze(smoothedPoses);
+        updatedClip.landingMetrics = metrics;
       }
-      return clip;
+      return updatedClip;
     });
 
     this.updateJob(jobId, { clips: updatedClips, progress: 100 });
