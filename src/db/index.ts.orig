@@ -70,28 +70,4 @@ export async function pruneOldVideos() {
   return pruneQuery;
 }
 
-export async function addSession(athleteId: number, notes: string = '') {
-  return await sql`INSERT INTO sessions (athlete_id, notes) VALUES (${athleteId}, ${notes}) RETURNING *`;
-}
-
-export async function getSessionsForAthlete(athleteId: number) {
-  return await sql`SELECT * FROM sessions WHERE athlete_id = ${athleteId} ORDER BY date DESC`;
-}
-
-export async function addAttempt(sessionId: number, videoPath: string | null, metricsJson: string) {
-  return await sql`INSERT INTO attempts (session_id, video_path, metrics_json) VALUES (${sessionId}, ${videoPath}, ${metricsJson}) RETURNING *`;
-}
-
-export async function getAttemptsForSession(sessionId: number) {
-  return await sql`SELECT * FROM attempts WHERE session_id = ${sessionId} ORDER BY created_at ASC`;
-}
-
-export async function getRecentAttemptsForAthlete(athleteId: number, limit: number = 50) {
-  return await sql`
-    SELECT a.* FROM attempts a
-    JOIN sessions s ON a.session_id = s.id
-    WHERE s.athlete_id = ${athleteId}
-    ORDER BY a.created_at DESC LIMIT ${limit}`;
-}
-
 export { sql };
