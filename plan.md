@@ -45,7 +45,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 ## Group 5: Phase 2 - Enhanced Motion Intelligence
 *Improving the stability and realism of the tracking data.*
 
-- [ ] **5.1. Implement Multi-Frame Depth Stabilization:** Update depth logic to analyze sequences of frames for relative spatial ordering. *(Ref: 05_phase_2.md - Multi-Frame Depth Stabilization)*
+- [x] **5.1. Implement Multi-Frame Depth Stabilization:** Update depth logic to analyze sequences of frames for relative spatial ordering. *(Ref: 05_phase_2.md - Multi-Frame Depth Stabilization)*
 - [ ] **5.2. Add Advanced Temporal Smoothing:** Implement Kalman filtering and trajectory smoothing across keypoints. *(Ref: 05_phase_2.md - Advanced Temporal Smoothing)*
 - [ ] **5.3. Build Apparatus-Aware Constraints:** Integrate fixed geometry logic for Floor, Pommel Horse, Vault, High Bar/P-Bars, and Rings. *(Ref: 08_physics_logic_engine.md - Apparatus-Specific Constraints)*
 - [ ] **5.4. Enforce Human Biomechanical Constraints:** Apply optimization algorithms to limit impossible joint angles, enforce limb length consistency, and prevent teleportation. *(Ref: 08_physics_logic_engine.md - Human Biomechanical Constraints)*
