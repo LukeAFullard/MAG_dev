@@ -125,17 +125,48 @@ export class PipelineManager {
 
   // Pass 2: Full pose estimation per clip (Slow/Background)
   private async pass2_poseEstimation(jobId: string): Promise<void> {
-    return new Promise((resolve) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 5;
-        this.updateJob(jobId, { progress: 33 + Math.min(33, (progress / 100) * 33) });
-        if (progress >= 100) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 200); // Simulate slow work
-    });
+    const job = this.jobs.get(jobId);
+    if (!job || !job.clips || job.clips.length === 0) {
+       // Just simulate if there's no actual clips
+       return new Promise((resolve) => {
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 5;
+          this.updateJob(jobId, { progress: 33 + Math.min(33, (progress / 100) * 33) });
+          if (progress >= 100) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 200); // Simulate slow work
+      });
+    }
+
+    const { InferenceEngine } = await import('./inference');
+    const engine = InferenceEngine.getInstance();
+
+    // Ensure inference engine is loaded and model is ready
+    if (engine.status !== 'Ready') {
+       await engine.init();
+    }
+
+    try {
+        await engine.loadModel('pose-estimation', 'rtmw');
+    } catch (e: any) {
+        console.warn('Could not load RTMW model in pipeline simulation:', e);
+    }
+
+    // In a real app we'd iterate over clips, extract frames, and run inference
+    // For now, we simulate processing each clip and update progress.
+    const totalClips = job.clips.length;
+    let completedClips = 0;
+
+    for (let i = 0; i < job.clips.length; i++) {
+        // Mock processing time for the clip
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        completedClips++;
+        const currentProgress = (completedClips / totalClips) * 100;
+        this.updateJob(jobId, { progress: 33 + Math.min(33, (currentProgress / 100) * 33) });
+    }
   }
 
   // Pass 3: Constraint engine smoothing + metric calculation

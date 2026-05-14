@@ -1,10 +1,9 @@
 import { pipeline, type PipelineType } from '@huggingface/transformers';
+import { PoseDetector } from 'rtmlib-ts';
 
-// Setup env to prevent local fetching if needed, we'll keep defaults for now
-// env.allowLocalModels = false;
-
-// We need to keep a reference to loaded pipelines
+// We need to keep a reference to loaded pipelines and detectors
 const pipelines = new Map<string, any>();
+const detectors = new Map<string, PoseDetector>();
 
 async function checkWebGPU(): Promise<boolean> {
   if (!navigator.gpu) {
@@ -13,7 +12,7 @@ async function checkWebGPU(): Promise<boolean> {
   try {
     const adapter = await navigator.gpu.requestAdapter();
     return !!adapter;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -22,7 +21,7 @@ let isWebGPUSupported = false;
 
 // Main message handler
 self.addEventListener('message', async (event) => {
-  const { id, action, task, model, input } = event.data;
+  const { id, action, task, model, input, config } = event.data;
 
   try {
     if (action === 'check-support') {
@@ -32,6 +31,24 @@ self.addEventListener('message', async (event) => {
     }
 
     if (action === 'load') {
+      if (task === 'pose-estimation' && model === 'rtmw') {
+        const key = `${task}-${model}`;
+        if (!detectors.has(key)) {
+            self.postMessage({ id, status: 'progress', data: { status: 'loading', message: `Loading pose detector...` } });
+            const device = isWebGPUSupported ? 'webgpu' : 'wasm';
+            const detectorConfig: any = {
+               backend: device,
+               poseModel: 'https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx',
+               ...config
+            };
+            const detector = new PoseDetector(detectorConfig);
+            await detector.init();
+            detectors.set(key, detector);
+        }
+        self.postMessage({ id, status: 'success', data: { message: 'Pose detector loaded' } });
+        return;
+      }
+
       const key = `${task}-${model}`;
       if (!pipelines.has(key)) {
         self.postMessage({ id, status: 'progress', data: { status: 'loading', message: `Loading model ${model}` } });
@@ -51,6 +68,26 @@ self.addEventListener('message', async (event) => {
     }
 
     if (action === 'run') {
+       if (task === 'pose-estimation' && model === 'rtmw') {
+         const key = `${task}-${model}`;
+         if (!detectors.has(key)) {
+            throw new Error(`Pose detector ${key} not loaded. Please load it first.`);
+         }
+         const detector = detectors.get(key)!;
+         // input could be an ImageData or ImageBitmap
+         let results;
+         if (input instanceof ImageBitmap) {
+             results = await detector.detectFromBitmap(input);
+         } else if (input instanceof ImageData) {
+             results = await detector.detect(new Uint8Array(input.data.buffer), input.width, input.height);
+         } else {
+             throw new Error('Unsupported input type for pose estimation');
+         }
+         self.postMessage({ id, status: 'success', data: results });
+         return;
+       }
+
+
       const key = `${task}-${model}`;
       if (!pipelines.has(key)) {
         throw new Error(`Pipeline ${key} not loaded. Please load it first.`);
