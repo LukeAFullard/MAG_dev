@@ -5,7 +5,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 ## Group 1: Pre-Development Validation & Licensing
 *Before writing production code, these business and licensing blockers must be resolved.*
 
-- [ ] **1.1. Validate Market & UX:** Conduct user discovery with 15-20 club coaches and build a no-code UX prototype (Figma) for the core session workflow. *(Ref: Feasibility Audit)*
+- [ ] **1.1. Validate Market & UX:** (Future work) Conduct user discovery with 15-20 club coaches and build a no-code UX prototype (Figma) for the core session workflow. *(Ref: Feasibility Audit)*
 - [x] **1.2. Resolve Pose Licensing:** Finalize the switch from YOLO-Pose to RTMPose/RTMW (Apache 2.0). *(Ref: 13_model_updates_2025.md)*
 - [x] **1.3. Resolve Depth Licensing:** Confirm the use of Depth Anything 3 Small (Apache 2.0). *(Ref: 13_model_updates_2025.md)*
 - [x] **1.4. Resolve FFmpegKit Licensing (Mobile):** Verify App Store compliance for the LGPL build of FFmpegKit or design an AVFoundation/MediaCodec alternative. *(Ref: 12_ffmpeg_resolution.md)*
@@ -28,7 +28,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 - [x] **3.1. Build Capture Guidelines UI:** Create onboarding screens recommending tripod use, side-angle capture, and proper lighting. *(Ref: 03_phase_0.md - Encouraging Controlled Capture)*
 - [x] **3.2. Implement Camera Calibration Workflow:** Build a one-button "Calibrate Floor" tool using a simple reference (gymnast standing still) to establish perspective. *(Ref: 03_phase_0.md - Camera Calibration Workflow)*
 - [x] **3.3. Implement Calibration Fail-safes:** Add background motion detection to alert the user or auto-recover if the camera is bumped mid-session. *(Ref: 03_phase_0.md - Calibration Fail-safes)*
-- [ ] **3.4. Curate Ground Truth Dataset:** Assemble and annotate a baseline video dataset (e.g., 100-200 attempts) with expert human judges for metric correlation. *(Ref: 03_phase_0.md - Ground Truth Validation)*
+- [ ] **3.4. Curate Ground Truth Dataset:** (Future work) Assemble and annotate a baseline video dataset (e.g., 100-200 attempts) with expert human judges for metric correlation. *(Ref: 03_phase_0.md - Ground Truth Validation)*
 - [x] **3.5. Develop Hardware Profiling Tool:** Create a WebGPU benchmark script to test the machine's capabilities and select the appropriate model size. *(Ref: 03_phase_0.md - Technical Environment Profiling)*
 
 ## Group 4: Phase 1 - Reliable Core (MVP Features)
