@@ -47,7 +47,9 @@ export class DepthExtractor {
         const extractFrame = async () => {
           if (currentTime > endTime) {
             URL.revokeObjectURL(url);
-            resolve(depths);
+            // Apply temporal stabilization across frames
+            const stabilizedDepths = this.stabilizeDepthSequence(depths);
+            resolve(stabilizedDepths);
             return;
           }
           video.currentTime = currentTime;
@@ -97,5 +99,44 @@ export class DepthExtractor {
         reject(e);
       };
     });
+  }
+
+  private stabilizeDepthSequence(depths: DepthData[]): DepthData[] {
+    if (depths.length < 3) return depths;
+
+    const windowSize = 3;
+    const halfWindow = Math.floor(windowSize / 2);
+    // Assuming all depth maps have the same dimensions in a sequence
+    const numPixels = depths[0].depthMap.data.length;
+    const stabilizedDepths: DepthData[] = [];
+
+    for (let i = 0; i < depths.length; i++) {
+      const startIdx = Math.max(0, i - halfWindow);
+      const endIdx = Math.min(depths.length - 1, i + halfWindow);
+      const count = endIdx - startIdx + 1;
+
+      // Create a new data array for the stabilized map using TypedArray for performance
+      const newData = new Float32Array(numPixels);
+
+      // Temporal smoothing (simple moving average across the window)
+      for (let p = 0; p < numPixels; p++) {
+        let sum = 0;
+        for (let j = startIdx; j <= endIdx; j++) {
+          sum += depths[j].depthMap.data[p];
+        }
+        newData[p] = sum / count;
+      }
+
+      stabilizedDepths.push({
+        time: depths[i].time,
+        depthMap: {
+          width: depths[i].depthMap.width,
+          height: depths[i].depthMap.height,
+          data: Array.from(newData)
+        }
+      });
+    }
+
+    return stabilizedDepths;
   }
 }
