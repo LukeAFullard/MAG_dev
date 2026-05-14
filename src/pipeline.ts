@@ -1,3 +1,5 @@
+import { AutoClipExtractor, type ExtractedClip } from './utils/autoClip';
+
 export type JobStatus = 'idle' | 'pass1' | 'pass2' | 'pass3' | 'completed' | 'error';
 
 export interface VideoProcessingJob {
@@ -6,6 +8,7 @@ export interface VideoProcessingJob {
   status: JobStatus;
   progress: number;
   message?: string;
+  clips?: ExtractedClip[];
 }
 
 type JobUpdateCallback = (job: VideoProcessingJob) => void;
@@ -47,7 +50,7 @@ export class PipelineManager {
     return Array.from(this.jobs.values());
   }
 
-  public async startJob(filename: string): Promise<string> {
+  public async startJob(filename: string, file?: File): Promise<string> {
     const id = `job_${Date.now()}`;
     const newJob: VideoProcessingJob = {
       id,
@@ -62,18 +65,18 @@ export class PipelineManager {
     }
 
     // Start background processing without awaiting
-    this.processJob(id).catch(err => {
+    this.processJob(id, file).catch(err => {
       this.updateJob(id, { status: 'error', message: err.message });
     });
 
     return id;
   }
 
-  private async processJob(jobId: string) {
+  private async processJob(jobId: string, file?: File) {
     try {
       // Pass 1
       this.updateJob(jobId, { status: 'pass1', progress: 0, message: 'Running Pass 1: Auto-Clip Extraction' });
-      await this.pass1_autoClipExtraction(jobId);
+      await this.pass1_autoClipExtraction(jobId, file);
 
       // Pass 2
       this.updateJob(jobId, { status: 'pass2', progress: 33, message: 'Running Pass 2: Full Pose Estimation' });
@@ -91,18 +94,33 @@ export class PipelineManager {
   }
 
   // Pass 1: Motion detection + auto-clip extraction (Fast)
-  private async pass1_autoClipExtraction(jobId: string): Promise<void> {
-    return new Promise((resolve) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
+  private async pass1_autoClipExtraction(jobId: string, file?: File): Promise<void> {
+    if (file) {
+      const extractor = new AutoClipExtractor();
+      const clips = await extractor.process(file, (progress) => {
         this.updateJob(jobId, { progress: Math.min(33, (progress / 100) * 33) });
-        if (progress >= 100) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100); // Simulate fast work
-    });
+      });
+      this.updateJob(jobId, { clips, progress: 33 });
+    } else {
+      // Simulation mode
+      return new Promise((resolve) => {
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          this.updateJob(jobId, { progress: Math.min(33, (progress / 100) * 33) });
+          if (progress >= 100) {
+            clearInterval(interval);
+            // Add some dummy clips for simulation
+            const dummyClips: ExtractedClip[] = [
+              { id: `clip_sim_1`, startTime: 1.5, endTime: 3.2, category: 'Vault' },
+              { id: `clip_sim_2`, startTime: 5.0, endTime: 7.8, category: 'Floor' }
+            ];
+            this.updateJob(jobId, { clips: dummyClips, progress: 33 });
+            resolve();
+          }
+        }, 100); // Simulate fast work
+      });
+    }
   }
 
   // Pass 2: Full pose estimation per clip (Slow/Background)

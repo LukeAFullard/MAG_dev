@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { initDb, addAthlete, getAthletes, pruneOldVideos } from './db';
 import { InferenceEngine } from './inference';
 import { PipelineManager, type VideoProcessingJob } from './pipeline';
@@ -12,6 +12,7 @@ const App: React.FC = () => {
   const [inferenceStatus, setInferenceStatus] = useState<string>('Initializing...');
   const [isWebGPU, setIsWebGPU] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<VideoProcessingJob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function setup() {
@@ -71,6 +72,19 @@ const App: React.FC = () => {
     pipeline.startJob(`demo_video_${Date.now()}.mp4`);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const pipeline = PipelineManager.getInstance();
+      pipeline.startJob(file.name, file);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
@@ -110,16 +124,32 @@ const App: React.FC = () => {
               <CameraCalibration />
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center gap-4 mb-4">
               <button
                 onClick={handleSimulateVideo}
-                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mb-4"
+                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
                 data-testid="simulate-video-btn"
               >
                 Simulate Video Drop
               </button>
+
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileUpload}
+                  ref={fileInputRef}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  data-testid="upload-video-input"
+                />
+                <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 pointer-events-none">
+                  Upload Real Video
+                </button>
+              </div>
+
               <CaptureGuidelines />
             </div>
+
             <div className="space-y-4">
               {jobs.map(job => (
                 <div key={job.id} className="border p-4 rounded-lg bg-gray-50 shadow-sm" data-testid="job-item">
@@ -130,7 +160,21 @@ const App: React.FC = () => {
                   <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
                     <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${job.progress}%` }}></div>
                   </div>
-                  <p className="text-sm text-gray-600">{job.message}</p>
+                  <p className="text-sm text-gray-600 mb-2">{job.message}</p>
+
+                  {job.clips && job.clips.length > 0 && (
+                     <div className="mt-4 border-t pt-2">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Extracted Clips</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {job.clips.map(clip => (
+                                <div key={clip.id} className="bg-blue-100 border border-blue-300 rounded px-3 py-1 text-xs" data-testid="extracted-clip">
+                                    <span className="font-bold text-blue-800">{clip.category}</span>
+                                    <span className="text-blue-600 ml-2">[{clip.startTime}s - {clip.endTime}s]</span>
+                                </div>
+                            ))}
+                        </div>
+                     </div>
+                  )}
                 </div>
               ))}
               {jobs.length === 0 && (
