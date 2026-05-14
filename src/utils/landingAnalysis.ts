@@ -88,7 +88,6 @@ export class LandingAnalyzer {
     let impactCom = impactPose.com;
     let maxDrift = 0;
     let lastAnkleX = 0;
-    let ankleStabilized = false;
     let stabilizationIndex = impactIndex;
 
     // Initialize lastAnkleX

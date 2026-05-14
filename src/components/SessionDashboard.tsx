@@ -38,7 +38,7 @@ export const SessionDashboard: React.FC = () => {
 
   const fetchAthletes = async () => {
     const data = await getAthletes();
-    setAthletes(data);
+    setAthletes(data as Athlete[]);
   };
 
   useEffect(() => {
@@ -57,12 +57,12 @@ export const SessionDashboard: React.FC = () => {
 
   const fetchSessions = async (athleteId: number) => {
     const data = await getSessionsForAthlete(athleteId);
-    setSessions(data);
+    setSessions(data as Session[]);
   };
 
   const fetchRecentAttempts = async (athleteId: number) => {
     const data = await getRecentAttemptsForAthlete(athleteId, 10); // Fetch last 10 attempts
-    setRecentAttempts(data);
+    setRecentAttempts(data as Attempt[]);
   };
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export const SessionDashboard: React.FC = () => {
 
   const fetchAttempts = async (sessionId: number) => {
     const data = await getAttemptsForSession(sessionId);
-    setAttempts(data);
+    setAttempts(data as Attempt[]);
   };
 
   const renderChart = () => {
@@ -88,7 +88,7 @@ export const SessionDashboard: React.FC = () => {
       <div className="mt-4 border rounded p-4 bg-white" data-testid="session-chart">
         <h4 className="text-md font-semibold mb-2">Recent Attempts Consistency</h4>
         <div className="flex items-end gap-2 h-32">
-          {recentAttempts.slice().reverse().map((attempt, index) => {
+          {recentAttempts.slice().reverse().map((attempt) => {
             // Mock consistency score from metrics_json if possible, else random
             let score = 0;
             try {
