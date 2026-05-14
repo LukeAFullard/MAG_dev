@@ -5,6 +5,7 @@ import { PipelineManager, type VideoProcessingJob } from './pipeline';
 import CaptureGuidelines from './components/CaptureGuidelines';
 import CameraCalibration from './components/CameraCalibration';
 import SideBySideComparison from './components/SideBySideComparison';
+import SessionDashboard from './components/SessionDashboard';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -117,6 +118,10 @@ const App: React.FC = () => {
                 <p className="text-sm text-purple-600 italic">Constraint engine and metric calculations.</p>
               </div>
             </div>
+          </div>
+
+          <div className="mb-8">
+            <SessionDashboard />
           </div>
 
           <SideBySideComparison />
