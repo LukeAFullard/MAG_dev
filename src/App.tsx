@@ -4,6 +4,7 @@ import { InferenceEngine } from './inference';
 import { PipelineManager, type VideoProcessingJob } from './pipeline';
 import CaptureGuidelines from './components/CaptureGuidelines';
 import CameraCalibration from './components/CameraCalibration';
+import SideBySideComparison from './components/SideBySideComparison';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -117,6 +118,8 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <SideBySideComparison />
 
           <div className="border-t pt-6">
             <h2 className="text-xl font-semibold mb-4">Pipeline Simulator</h2>
