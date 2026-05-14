@@ -80,7 +80,7 @@ export class PipelineManager {
 
       // Pass 2
       this.updateJob(jobId, { status: 'pass2', progress: 33, message: 'Running Pass 2: Full Pose Estimation' });
-      await this.pass2_poseEstimation(jobId);
+      await this.pass2_poseEstimation(jobId, file);
 
       // Pass 3
       this.updateJob(jobId, { status: 'pass3', progress: 66, message: 'Running Pass 3: Constraint Smoothing & Metrics' });
@@ -124,7 +124,7 @@ export class PipelineManager {
   }
 
   // Pass 2: Full pose estimation per clip (Slow/Background)
-  private async pass2_poseEstimation(jobId: string): Promise<void> {
+  private async pass2_poseEstimation(jobId: string, file?: File): Promise<void> {
     const job = this.jobs.get(jobId);
     if (!job || !job.clips || job.clips.length === 0) {
        // Just simulate if there's no actual clips
@@ -155,17 +155,39 @@ export class PipelineManager {
         console.warn('Could not load RTMW model in pipeline simulation:', e);
     }
 
-    // In a real app we'd iterate over clips, extract frames, and run inference
-    // For now, we simulate processing each clip and update progress.
-    const totalClips = job.clips.length;
-    let completedClips = 0;
+    if (file) {
+      const { PoseExtractor } = await import('./utils/poseExtraction');
+      const poseExtractor = new PoseExtractor();
+      const totalClips = job.clips.length;
 
-    for (let i = 0; i < job.clips.length; i++) {
-        // Mock processing time for the clip
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        completedClips++;
-        const currentProgress = (completedClips / totalClips) * 100;
-        this.updateJob(jobId, { progress: 33 + Math.min(33, (currentProgress / 100) * 33) });
+      const clipsWithPoses: (ExtractedClip & { poses?: any[] })[] = [];
+
+      for (let i = 0; i < job.clips.length; i++) {
+        const clip = job.clips[i];
+        try {
+          const poses = await poseExtractor.extract(file, clip, engine, (clipProgress) => {
+            const overallProgress = ((i + (clipProgress / 100)) / totalClips) * 100;
+            this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });
+          });
+          clipsWithPoses.push({ ...clip, poses });
+        } catch (e) {
+          console.error(`Failed to extract poses for clip ${clip.id}`, e);
+          clipsWithPoses.push(clip);
+        }
+      }
+      this.updateJob(jobId, { clips: clipsWithPoses, progress: 66 });
+    } else {
+      // Simulation mode
+      const totalClips = job.clips.length;
+      let completedClips = 0;
+
+      for (let i = 0; i < job.clips.length; i++) {
+          // Mock processing time for the clip
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          completedClips++;
+          const currentProgress = (completedClips / totalClips) * 100;
+          this.updateJob(jobId, { progress: 33 + Math.min(33, (currentProgress / 100) * 33) });
+      }
     }
   }
 

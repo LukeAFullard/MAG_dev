@@ -41,11 +41,11 @@ export class InferenceEngine {
     return InferenceEngine.instance;
   }
 
-  private postMessageAsync(action: string, payload: any, onProgress?: (data: any) => void): Promise<any> {
+  private postMessageAsync(action: string, payload: any, onProgress?: (data: any) => void, transfer?: Transferable[]): Promise<any> {
     return new Promise((resolve, reject) => {
       const id = `${Date.now()}-${this.msgIdCounter++}`;
       this.messageCallbacks.set(id, { resolve, reject, onProgress });
-      this.worker.postMessage({ id, action, ...payload });
+      this.worker.postMessage({ id, action, ...payload }, transfer || []);
     });
   }
 
@@ -64,7 +64,7 @@ export class InferenceEngine {
     return this.postMessageAsync('load', { task, model }, onProgress);
   }
 
-  public async runInference(task: string, model: string, input: any): Promise<any> {
-    return this.postMessageAsync('run', { task, model, input });
+  public async runInference(task: string, model: string, input: any, transfer?: Transferable[]): Promise<any> {
+    return this.postMessageAsync('run', { task, model, input }, undefined, transfer);
   }
 }
