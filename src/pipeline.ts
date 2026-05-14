@@ -112,8 +112,18 @@ export class PipelineManager {
             clearInterval(interval);
             // Add some dummy clips for simulation
             const dummyClips: ExtractedClip[] = [
-              { id: `clip_sim_1`, startTime: 1.5, endTime: 3.2, category: 'Vault' },
-              { id: `clip_sim_2`, startTime: 5.0, endTime: 7.8, category: 'Floor' }
+              {
+                id: `clip_sim_1`, startTime: 1.5, endTime: 3.2, category: 'Vault', poses: [
+                  { time: 1.5, keypoints: Array(17).fill({ x: 100, y: 100, score: 0.9 }) },
+                  { time: 2.0, keypoints: Array(17).fill({ x: 100, y: 120, score: 0.9 }) }
+                ]
+              },
+              {
+                id: `clip_sim_2`, startTime: 5.0, endTime: 7.8, category: 'Floor', poses: [
+                  { time: 5.0, keypoints: Array(17).fill({ x: 200, y: 200, score: 0.9 }) },
+                  { time: 6.0, keypoints: Array(17).fill({ x: 200, y: 220, score: 0.9 }) }
+                ]
+              }
             ];
             this.updateJob(jobId, { clips: dummyClips, progress: 33 });
             resolve();
@@ -204,16 +214,32 @@ export class PipelineManager {
 
   // Pass 3: Constraint engine smoothing + metric calculation
   private async pass3_smoothingAndMetrics(jobId: string): Promise<void> {
-    return new Promise((resolve) => {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 20;
-        this.updateJob(jobId, { progress: 66 + Math.min(34, (progress / 100) * 34) });
-        if (progress >= 100) {
-          clearInterval(interval);
-          resolve();
-        }
-      }, 150); // Simulate medium work
+    const job = this.jobs.get(jobId);
+    if (!job || !job.clips || job.clips.length === 0) {
+      return new Promise((resolve) => {
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 20;
+          this.updateJob(jobId, { progress: 66 + Math.min(34, (progress / 100) * 34) });
+          if (progress >= 100) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 150); // Simulate medium work
+      });
+    }
+
+    const { LandingAnalyzer } = await import('./utils/landingAnalysis');
+    const analyzer = new LandingAnalyzer();
+
+    const updatedClips = job.clips.map(clip => {
+      if (clip.poses && clip.poses.length > 0) {
+        const metrics = analyzer.analyze(clip.poses);
+        return { ...clip, landingMetrics: metrics };
+      }
+      return clip;
     });
+
+    this.updateJob(jobId, { clips: updatedClips, progress: 100 });
   }
 }

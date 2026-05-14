@@ -1,8 +1,13 @@
+import { type LandingMetrics } from './landingAnalysis';
+
 export interface ExtractedClip {
   id: string;
   startTime: number;
   endTime: number;
   category: string;
+  poses?: any[]; // Keep flexible
+  depths?: any[];
+  landingMetrics?: LandingMetrics;
 }
 
 export class AutoClipExtractor {

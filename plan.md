@@ -38,7 +38,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 - [x] **4.2. Implement Pass 2: 2D Pose Tracking:** Integrate RTMPose-m or RTMPose-l for background batch processing to extract skeletal joints, angles, and COM trajectories. *(Ref: 04_phase_1.md - 2D Pose Tracking & Overlay)*
 - [x] **4.3. Implement Relative Depth Maps:** Integrate the selected small depth model to improve occlusion handling and temporal consistency. *(Ref: 04_phase_1.md - Relative Depth)*
 - [x] **4.4. Build Side-by-Side Comparison UI:** Implement synchronized playback tools, anchor frame syncing, and overlay modes. *(Ref: 04_phase_1.md - Side-by-Side Comparison Tools)*
-- [ ] **4.5. Implement Pass 3: Landing Analysis Engine:** Calculate landing stability, step count, lateral drift, and knee collapse tendency using floor plane constraints. *(Ref: 04_phase_1.md - Specialized Landing Analysis)*
+- [x] **4.5. Implement Pass 3: Landing Analysis Engine:** Calculate landing stability, step count, lateral drift, and knee collapse tendency using floor plane constraints. *(Ref: 04_phase_1.md - Specialized Landing Analysis)*
 - [ ] **4.6. Build Session Analytics Dashboards:** Create UI for multi-athlete management, attempt categorization, and video-linked drill-down from data points. *(Ref: 04_phase_1.md - Session Analytics & Management)*
 - [ ] **4.7. Add Manual Annotation Tools:** Implement frame stepping, point editing/correction, coach drawing overlays, and tagging. Ensure the correction feedback loop overrides metadata without directly fine-tuning local base models. *(Ref: 07_additional_features.md - Manual Annotation Tools, 04_phase_1.md - Correction Feedback Loop)*
 

@@ -170,9 +170,21 @@ const App: React.FC = () => {
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">Extracted Clips</h4>
                         <div className="flex flex-wrap gap-2">
                             {job.clips.map(clip => (
-                                <div key={clip.id} className="bg-blue-100 border border-blue-300 rounded px-3 py-1 text-xs" data-testid="extracted-clip">
-                                    <span className="font-bold text-blue-800">{clip.category}</span>
-                                    <span className="text-blue-600 ml-2">[{clip.startTime}s - {clip.endTime}s]</span>
+                                <div key={clip.id} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs flex flex-col gap-1 w-full sm:w-auto" data-testid="extracted-clip">
+                                    <div>
+                                        <span className="font-bold text-blue-800">{clip.category}</span>
+                                        <span className="text-blue-600 ml-2">[{clip.startTime}s - {clip.endTime}s]</span>
+                                    </div>
+                                    {clip.landingMetrics && (
+                                        <div className="mt-1 pt-1 border-t border-blue-100 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-gray-700">
+                                            <span>Impact: {clip.landingMetrics.impactTime?.toFixed(2)}s</span>
+                                            <span>Stabilization: {clip.landingMetrics.timeToStabilization?.toFixed(2)}s</span>
+                                            <span>Steps: {clip.landingMetrics.stepCount}</span>
+                                            <span>Drift: {clip.landingMetrics.lateralDrift?.toFixed(1)}px</span>
+                                            <span>Knee Angle: {clip.landingMetrics.minKneeAngle?.toFixed(1)}°</span>
+                                            <span>Torso Lean: {clip.landingMetrics.torsoLeanAngle?.toFixed(1)}°</span>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
