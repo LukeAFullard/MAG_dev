@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
 
 test.describe('Side-by-Side Comparison UI', () => {
     test('should render the side-by-side UI', async ({ page }) => {
