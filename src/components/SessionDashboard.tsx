@@ -469,7 +469,7 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
                                             });
                                         });
                                     } else {
-                                        // Legacy or mock data
+                                        // Plain URL data (e.g. from tests)
                                         onSelectAttempt(attempt);
                                         document.querySelector('[data-testid="manual-annotation"]')?.scrollIntoView({ behavior: 'smooth' });
                                     }

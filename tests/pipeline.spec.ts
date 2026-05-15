@@ -8,17 +8,17 @@ test.describe('Video Processing Pipeline', () => {
     // Wait for initial render
     await expect(page.locator('h1')).toContainText('MAG_dev');
 
-    // Check that Pipeline Simulator section exists
-    await expect(page.locator('h2', { hasText: 'Pipeline Simulator' })).toBeVisible();
+    // Check that New Video Analysis section exists
+    await expect(page.locator('h2', { hasText: 'New Video Analysis' })).toBeVisible();
 
-    // Click the simulate button
-    await page.getByTestId('simulate-video-btn').click();
+    // Upload the sample video
+    await page.getByTestId('upload-video-input').setInputFiles('public/test_clip.mp4');
 
     const jobItem = page.getByTestId('job-item');
     await expect(jobItem).toBeVisible();
 
-    // Verify it passes through Pass 2 (since pass 1 might be too fast to catch)
-    await expect(jobItem).toContainText('Running Pass 2');
+    // Verify it passes through or reaches Pass 2/Pass 3 or completion
+    await expect(jobItem).toContainText(/Running Pass|Processing Complete/);
 
     // Verify extracted clips are displayed (it processes a real video now)
     const clip = page.getByTestId('extracted-clip').first();

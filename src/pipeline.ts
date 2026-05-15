@@ -141,7 +141,7 @@ export class PipelineManager {
         await engine.loadModel('pose-estimation', 'rtmw');
         await engine.loadModel('depth-estimation', 'onnx-community/depth-anything-v2-small');
     } catch (e: any) {
-        console.warn('Could not load models in pipeline simulation:', e);
+        console.warn('Could not load models in pipeline:', e);
     }
 
     const { PoseExtractor } = await import('./utils/poseExtraction');
