@@ -231,14 +231,20 @@ export class PipelineManager {
 
     const { LandingAnalyzer } = await import('./utils/landingAnalysis');
     const { TemporalSmoother } = await import('./utils/temporalSmoothing');
+    const { ApparatusConstraints } = await import('./utils/apparatusConstraints');
     const analyzer = new LandingAnalyzer();
     const smoother = new TemporalSmoother();
+    const constraints = new ApparatusConstraints();
 
     const updatedClips = job.clips.map(clip => {
       let updatedClip = { ...clip };
       if (clip.poses && clip.poses.length > 0) {
         // Apply temporal smoothing to the poses
-        const smoothedPoses = smoother.smoothPoses(clip.poses);
+        let smoothedPoses = smoother.smoothPoses(clip.poses);
+
+        // Apply apparatus-specific constraints
+        smoothedPoses = constraints.applyConstraints(smoothedPoses, clip.category, clip.facingCamera);
+
         updatedClip.poses = smoothedPoses;
 
         // Calculate metrics using the smoothed poses
