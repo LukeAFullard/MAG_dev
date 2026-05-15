@@ -21,7 +21,11 @@ interface Attempt {
   created_at: string;
 }
 
-export const SessionDashboard: React.FC = () => {
+interface SessionDashboardProps {
+  onSelectAttempt?: (attempt: Attempt) => void;
+}
+
+export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAttempt }) => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [selectedAthleteId, setSelectedAthleteId] = useState<number | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -160,7 +164,7 @@ export const SessionDashboard: React.FC = () => {
     // Formula: Base metric stability + recent trend bonus/penalty
     const stabilityScore = Math.min(100, Math.max(0, baselineAvg * 10));
     const trendBonus = (recentAvg - baselineAvg) * 5; // up to +/- ~10-15 pts based on trend
-    let readinessScore = Math.min(100, Math.max(0, Math.round(stabilityScore + trendBonus)));
+    const readinessScore = Math.min(100, Math.max(0, Math.round(stabilityScore + trendBonus)));
 
     // Skill Prerequisite Tracking
     // In a real app this would analyze specific metrics (e.g. amplitude, consistency on lower skills).
@@ -454,8 +458,16 @@ export const SessionDashboard: React.FC = () => {
                             return (
                               <tr key={attempt.id} className="border-t">
                                 <td className="px-4 py-2 text-gray-800">{new Date(attempt.created_at).toLocaleTimeString()}</td>
-                                <td className="px-4 py-2 text-blue-600 cursor-pointer hover:underline" onClick={() => alert(`Drill-down: Showing video for Attempt ${attempt.id}`)}>
-                                  {attempt.video_path ? 'View Video' : 'No Video'}
+                                <td className="px-4 py-2 text-blue-600 cursor-pointer hover:underline" onClick={() => {
+                                  if (onSelectAttempt) {
+                                    onSelectAttempt(attempt);
+                                    // Smooth scroll down to the manual annotation section
+                                    document.querySelector('[data-testid="manual-annotation"]')?.scrollIntoView({ behavior: 'smooth' });
+                                  } else {
+                                    alert(`Drill-down: Showing video for Attempt ${attempt.id}`);
+                                  }
+                                }}>
+                                  {attempt.video_path ? 'View / Annotate' : 'No Video'}
                                 </td>
                                 <td className="px-4 py-2 text-gray-600">{metricsPreview}</td>
                               </tr>

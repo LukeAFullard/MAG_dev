@@ -239,7 +239,7 @@ export class PipelineManager {
     const biomechanics = new HumanBiomechanics();
 
     const updatedClips = job.clips.map(clip => {
-      let updatedClip = { ...clip };
+      const updatedClip = { ...clip };
       if (clip.poses && clip.poses.length > 0) {
         // Apply human biomechanical constraints first to ensure base anatomical realism
         let smoothedPoses = biomechanics.applyConstraints(clip.poses);

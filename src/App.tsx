@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [inferenceStatus, setInferenceStatus] = useState<string>('Initializing...');
   const [isWebGPU, setIsWebGPU] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<VideoProcessingJob[]>([]);
+  const [selectedAttemptForAnnotation, setSelectedAttemptForAnnotation] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -88,6 +89,30 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSavePoses = async (poses: any[]) => {
+    if (!selectedAttemptForAnnotation) return;
+
+    try {
+      const { updateAttemptMetrics } = await import('./db');
+      const metrics = JSON.parse(selectedAttemptForAnnotation.metrics_json);
+      metrics.poses = poses; // Update the poses in the JSON
+      const updatedMetricsJson = JSON.stringify(metrics);
+
+      await updateAttemptMetrics(selectedAttemptForAnnotation.id, updatedMetricsJson);
+
+      // Update local state to reflect the saved changes so switching back and forth works
+      setSelectedAttemptForAnnotation({
+        ...selectedAttemptForAnnotation,
+        metrics_json: updatedMetricsJson
+      });
+
+      alert('Poses saved successfully!');
+    } catch (e) {
+      console.error('Failed to save poses', e);
+      alert('Failed to save poses. Check console for details.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
@@ -122,13 +147,24 @@ const App: React.FC = () => {
           </div>
 
           <div className="mb-8">
-            <SessionDashboard />
+            <SessionDashboard onSelectAttempt={(attempt) => setSelectedAttemptForAnnotation(attempt)} />
           </div>
 
           <SideBySideComparison />
 
           <div className="mb-8">
-            <ManualAnnotation />
+            {selectedAttemptForAnnotation ? (
+              <ManualAnnotation
+                 key={selectedAttemptForAnnotation.id}
+                 videoUrl={selectedAttemptForAnnotation.video_path}
+                 initialPoses={JSON.parse(selectedAttemptForAnnotation.metrics_json)?.poses || []}
+                 onSavePoses={handleSavePoses}
+              />
+            ) : (
+              <div className="border p-4 rounded bg-gray-50 text-center text-gray-500 shadow-sm">
+                <p>Select an attempt from the Session Dashboard to view or edit manual annotations.</p>
+              </div>
+            )}
           </div>
 
           <div className="border-t pt-6">
