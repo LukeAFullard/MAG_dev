@@ -114,7 +114,7 @@ const CameraCalibration: React.FC = () => {
             // Start the background fail-safe monitor
             bumpIntervalRef.current = window.setInterval(captureBackgroundAndCheckBump, 500);
 
-        } catch (e) {
+        } catch (_e) {
             setStatus('error');
             setErrorMessage('Could not detect floor plane. Please ensure gymnast is fully visible and standing still.');
         }
