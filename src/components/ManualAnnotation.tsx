@@ -1,11 +1,23 @@
 import React, { useState, useRef, useEffect, type MouseEvent as ReactMouseEvent } from 'react';
 
-// A mock definition for the component props
-interface ManualAnnotationProps {
-  videoUrl?: string; // Optional for now, we can use a placeholder
+export interface PoseKeypoint {
+  x: number;
+  y: number;
+  score: number;
 }
 
-export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) => {
+export interface PoseData {
+  time: number;
+  keypoints: PoseKeypoint[];
+}
+
+interface ManualAnnotationProps {
+  videoUrl?: string | null;
+  initialPoses?: PoseData[];
+  onSavePoses?: (poses: PoseData[]) => void;
+}
+
+export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, initialPoses = [], onSavePoses }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -23,12 +35,44 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
   const [tags, setTags] = useState<{ time: number; text: string }[]>([]);
   const [newTag, setNewTag] = useState('');
 
-  // Mock pose points
-  const [posePoints, setPosePoints] = useState<{ id: number, x: number, y: number }[]>([
-    { id: 1, x: 100, y: 100 },
-    { id: 2, x: 150, y: 150 },
-  ]);
+  // Actual poses from the clip
+  const [poses, setPoses] = useState<PoseData[]>(initialPoses);
+  // Current keypoints for the active frame
+  const [currentKeypoints, setCurrentKeypoints] = useState<{ id: number, x: number, y: number, score: number }[]>([]);
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
+
+  useEffect(() => {
+    setPoses(initialPoses);
+  }, [initialPoses]);
+
+  // Find the closest pose data to the current time
+  useEffect(() => {
+    if (poses.length === 0) {
+      setCurrentKeypoints([]);
+      return;
+    }
+
+    let closestPose = poses[0];
+    let minDiff = Math.abs(poses[0].time - currentTime);
+
+    for (let i = 1; i < poses.length; i++) {
+      const diff = Math.abs(poses[i].time - currentTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestPose = poses[i];
+      }
+    }
+
+    // Convert keypoints to the format needed for dragging (adding an ID)
+    const points = closestPose.keypoints.map((kp, idx) => ({
+      id: idx,
+      x: kp.x,
+      y: kp.y,
+      score: kp.score
+    }));
+
+    setCurrentKeypoints(points);
+  }, [currentTime, poses]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -54,10 +98,11 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
 
   useEffect(() => {
     drawCanvas();
-  }, [lines, currentLine, posePoints, mode]);
+  }, [lines, currentLine, currentKeypoints, mode]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
+    const video = videoRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -81,12 +126,24 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
       ctx.stroke();
     }
 
+    // Draw current frame onto canvas
+    if (video && video.readyState >= 2) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
+
     // Draw pose points
-    posePoints.forEach(point => {
+    currentKeypoints.forEach(point => {
+      if (point.score < 0.3 && mode !== 'edit-pose') return; // Hide low confidence points unless editing
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
-      ctx.fillStyle = mode === 'edit-pose' ? 'blue' : 'green';
+      ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = mode === 'edit-pose' ? 'rgba(0, 0, 255, 0.8)' : 'rgba(0, 255, 0, 0.8)';
       ctx.fill();
+
+      if (mode === 'edit-pose') {
+          ctx.strokeStyle = 'white';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+      }
     });
   };
 
@@ -120,7 +177,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
       setIsDrawing(true);
       setCurrentLine({ x1: x, y1: y, x2: x, y2: y });
     } else if (mode === 'edit-pose') {
-      const point = posePoints.find(p => Math.hypot(p.x - x, p.y - y) < 10);
+      const point = currentKeypoints.find(p => Math.hypot(p.x - x, p.y - y) < 15);
       if (point) {
         setDraggingPoint(point.id);
       }
@@ -137,7 +194,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
     if (mode === 'draw' && isDrawing && currentLine) {
       setCurrentLine({ ...currentLine, x2: x, y2: y });
     } else if (mode === 'edit-pose' && draggingPoint !== null) {
-      setPosePoints(prev => prev.map(p => p.id === draggingPoint ? { ...p, x, y } : p));
+      setCurrentKeypoints(prev => prev.map(p => p.id === draggingPoint ? { ...p, x, y } : p));
     }
   };
 
@@ -147,6 +204,26 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
       setCurrentLine(null);
       setIsDrawing(false);
     } else if (mode === 'edit-pose' && draggingPoint !== null) {
+      // Find the closest pose time to update the master poses array
+      if (poses.length > 0) {
+        let closestIdx = 0;
+        let minDiff = Math.abs(poses[0].time - currentTime);
+        for (let i = 1; i < poses.length; i++) {
+          const diff = Math.abs(poses[i].time - currentTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = i;
+          }
+        }
+
+        setPoses(prevPoses => {
+            const newPoses = [...prevPoses];
+            const updatedPose = { ...newPoses[closestIdx] };
+            updatedPose.keypoints = currentKeypoints.map(kp => ({ x: kp.x, y: kp.y, score: kp.score }));
+            newPoses[closestIdx] = updatedPose;
+            return newPoses;
+        });
+      }
       setDraggingPoint(null);
     }
   };
@@ -158,24 +235,33 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
     }
   };
 
+  const handleSave = () => {
+    if (onSavePoses) {
+      onSavePoses(poses);
+    }
+  };
+
   return (
     <div className="border p-4 rounded bg-white shadow-sm" data-testid="manual-annotation">
       <h3 className="font-semibold text-gray-700 mb-4">Manual Annotation Tools</h3>
 
       <div className="relative inline-block border bg-black rounded overflow-hidden">
-        {/* Placeholder video element */}
-        {videoUrl ? (
+        {/* We hide the video and render it to the canvas for frame accurate extraction */}
+        {videoUrl && (
           <video
             ref={videoRef}
             src={videoUrl}
-            className="w-[640px] h-[360px]"
+            className="hidden"
+            playsInline
             data-testid="annotation-video"
+            onSeeked={() => drawCanvas()}
           />
-        ) : (
-          <div className="w-[640px] h-[360px] bg-gray-200 flex items-center justify-center text-gray-500">
-            No video loaded
-            <video ref={videoRef} src="" className="hidden" />
-          </div>
+        )}
+
+        {!videoUrl && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-500 z-0">
+                No video loaded
+            </div>
         )}
 
         <canvas
@@ -209,6 +295,12 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl }) 
           <button onClick={() => setMode('edit-pose')} className={`px-2 py-1 rounded text-sm ${mode === 'edit-pose' ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`} data-testid="mode-edit">Edit Pose</button>
           <button onClick={() => setLines([])} className="px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm">Clear Drawings</button>
         </div>
+
+        {onSavePoses && (
+            <button onClick={handleSave} className="ml-auto px-4 py-1 bg-green-600 text-white hover:bg-green-700 rounded text-sm font-semibold" data-testid="save-poses-btn">
+                Save Pose Corrections
+            </button>
+        )}
       </div>
 
       {/* Tags Section */}

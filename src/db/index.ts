@@ -82,6 +82,10 @@ export async function addAttempt(sessionId: number, videoPath: string | null, me
   return await sql`INSERT INTO attempts (session_id, video_path, metrics_json) VALUES (${sessionId}, ${videoPath}, ${metricsJson}) RETURNING *`;
 }
 
+export async function updateAttemptMetrics(attemptId: number, metricsJson: string) {
+  return await sql`UPDATE attempts SET metrics_json = ${metricsJson} WHERE id = ${attemptId} RETURNING *`;
+}
+
 export async function getAttemptsForSession(sessionId: number) {
   return await sql`SELECT * FROM attempts WHERE session_id = ${sessionId} ORDER BY created_at ASC`;
 }

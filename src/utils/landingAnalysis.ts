@@ -89,7 +89,7 @@ export class LandingAnalyzer {
     }
 
     // Post-impact analysis
-    let impactCom = impactPose.com;
+    const impactCom = impactPose.com;
     let maxDrift = 0;
     let lastAnkleX = 0;
     let stabilizationIndex = impactIndex;
