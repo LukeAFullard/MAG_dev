@@ -21,9 +21,9 @@ test('camera calibration workflow works', async ({ page }) => {
   await expect(page.locator('text=Calibration Successful! Floor plane established.')).toBeVisible();
 
   // Simulate Bump
-  const simulateBumpBtn = page.locator('[data-testid="simulate-bump-btn"]');
-  await expect(simulateBumpBtn).toBeVisible();
-  await simulateBumpBtn.click();
+  const forceBumpBtn = page.locator('[data-testid="force-bump-btn"]');
+  await expect(forceBumpBtn).toBeVisible();
+  await forceBumpBtn.click();
 
   // Verify bumped state
   const bumpedStatus = page.locator('[data-testid="calibration-bumped"]');

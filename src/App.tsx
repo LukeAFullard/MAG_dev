@@ -71,25 +71,6 @@ const App: React.FC = () => {
     await fetchAthletes();
   };
 
-  const handleSimulateVideo = async () => {
-    try {
-        // Fetch a small test video from the public directory
-        const response = await fetch('/test_clip.mp4');
-        if (!response.ok) throw new Error("Test clip not found");
-
-        const blob = await response.blob();
-        const file = new File([blob], `demo_video_${Date.now()}.mp4`, { type: 'video/mp4' });
-
-        // Use the standard upload flow which saves to OPFS and starts the pipeline
-        const e = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
-        handleFileUpload(e);
-
-    } catch (e) {
-        alert("Could not load test video. Please make sure test_clip.mp4 exists in the public directory.");
-        console.error(e);
-    }
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -195,20 +176,12 @@ const App: React.FC = () => {
           </div>
 
           <div className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Pipeline Simulator</h2>
+            <h2 className="text-xl font-semibold mb-4">New Video Analysis</h2>
             <div className="mb-6">
               <CameraCalibration />
             </div>
 
             <div className="flex items-center gap-4 mb-4">
-              <button
-                onClick={handleSimulateVideo}
-                className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                data-testid="simulate-video-btn"
-              >
-                Simulate Video Drop
-              </button>
-
               <div className="relative">
                 <input
                   type="file"
@@ -219,7 +192,7 @@ const App: React.FC = () => {
                   data-testid="upload-video-input"
                 />
                 <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 pointer-events-none">
-                  Upload Real Video
+                  Upload Video
                 </button>
               </div>
 
