@@ -5,6 +5,7 @@ export interface ExtractedClip {
   startTime: number;
   endTime: number;
   category: string;
+  facingCamera?: boolean;
   poses?: any[]; // Keep flexible
   depths?: any[];
   landingMetrics?: LandingMetrics;
