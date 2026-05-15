@@ -94,4 +94,12 @@ export async function getRecentAttemptsForAthlete(athleteId: number, limit: numb
     ORDER BY a.created_at DESC LIMIT ${limit}`;
 }
 
+export async function getAllAttemptsForAthlete(athleteId: number) {
+  return await sql`
+    SELECT a.* FROM attempts a
+    JOIN sessions s ON a.session_id = s.id
+    WHERE s.athlete_id = ${athleteId}
+    ORDER BY a.created_at ASC`;
+}
+
 export { sql };
