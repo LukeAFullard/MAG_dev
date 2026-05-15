@@ -11,6 +11,11 @@ const SideBySideComparison: React.FC = () => {
     const [playbackRate, setPlaybackRate] = useState(1);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [syncPoint1, setSyncPoint1] = useState<number | null>(null);
+    const [syncPoint2, setSyncPoint2] = useState<number | null>(null);
+    const [video1Opacity, setVideo1Opacity] = useState(1.0);
+    const [video2Opacity, setVideo2Opacity] = useState(0.5);
+    const [isFlipped, setIsFlipped] = useState(false);
 
     const handleFileUpload1 = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -52,6 +57,44 @@ const SideBySideComparison: React.FC = () => {
         if (video1Ref.current && video2Ref.current) {
             video2Ref.current.currentTime = Math.max(0, video1Ref.current.currentTime - offset);
         }
+    };
+
+    const handleSetSyncPoint1 = () => {
+        if (video1Ref.current) {
+            const time = video1Ref.current.currentTime;
+            setSyncPoint1(time);
+            if (syncPoint2 !== null) {
+                const newOffset = time - syncPoint2;
+                setSyncOffset(newOffset);
+                syncVideos(newOffset);
+            }
+        }
+    };
+
+    const handleSetSyncPoint2 = () => {
+        if (video2Ref.current) {
+            const time = video2Ref.current.currentTime;
+            setSyncPoint2(time);
+            if (syncPoint1 !== null) {
+                const newOffset = syncPoint1 - time;
+                setSyncOffset(newOffset);
+                syncVideos(newOffset);
+            }
+        }
+    };
+
+    const stepFrame = (forward: boolean) => {
+        const step = 1 / 30; // approx 30 fps
+        if (video1Ref.current) {
+            video1Ref.current.pause();
+            video1Ref.current.currentTime = Math.max(0, video1Ref.current.currentTime + (forward ? step : -step));
+            setCurrentTime(video1Ref.current.currentTime);
+        }
+        if (video2Ref.current) {
+            video2Ref.current.pause();
+            video2Ref.current.currentTime = Math.max(0, video2Ref.current.currentTime + (forward ? step : -step));
+        }
+        setIsPlaying(false);
     };
 
     useEffect(() => {
@@ -98,11 +141,25 @@ const SideBySideComparison: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="bg-gray-50 p-4 rounded border">
-                    <label className="block text-sm font-semibold mb-2 text-gray-700">Video 1 (Reference)</label>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">Video 1 (Reference)</label>
+                        {video1 && (
+                            <button onClick={handleSetSyncPoint1} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
+                                Set Sync Point 1 {syncPoint1 !== null && `(${syncPoint1.toFixed(2)}s)`}
+                            </button>
+                        )}
+                    </div>
                     <input type="file" accept="video/*" onChange={handleFileUpload1} className="w-full text-sm" data-testid="upload-video-1" />
                 </div>
                 <div className="bg-gray-50 p-4 rounded border">
-                    <label className="block text-sm font-semibold mb-2 text-gray-700">Video 2 (Attempt)</label>
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">Video 2 (Attempt)</label>
+                        {video2 && (
+                            <button onClick={handleSetSyncPoint2} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
+                                Set Sync Point 2 {syncPoint2 !== null && `(${syncPoint2.toFixed(2)}s)`}
+                            </button>
+                        )}
+                    </div>
                     <input type="file" accept="video/*" onChange={handleFileUpload2} className="w-full text-sm" data-testid="upload-video-2" />
                 </div>
             </div>
@@ -112,13 +169,13 @@ const SideBySideComparison: React.FC = () => {
 
                 <div className={`${isOverlayMode ? 'relative w-full aspect-video' : 'flex w-full h-full'}`}>
                     {video1 && (
-                        <div className={`${isOverlayMode ? 'absolute inset-0' : 'flex-1 border-r border-gray-800'}`}>
+                        <div className={`${isOverlayMode ? 'absolute inset-0' : 'flex-1 border-r border-gray-800'}`} style={{ opacity: isOverlayMode ? video1Opacity : 1 }}>
                             <video ref={video1Ref} src={video1} className="w-full h-full object-contain" muted={isOverlayMode || !!video2} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                         </div>
                     )}
                     {video2 && (
-                        <div className={`${isOverlayMode ? 'absolute inset-0 opacity-50 mix-blend-screen' : 'flex-1'}`}>
-                            <video ref={video2Ref} src={video2} className="w-full h-full object-contain" muted />
+                        <div className={`${isOverlayMode ? 'absolute inset-0 mix-blend-screen pointer-events-none' : 'flex-1'}`} style={{ opacity: isOverlayMode ? video2Opacity : 1 }}>
+                            <video ref={video2Ref} src={video2} className={`w-full h-full object-contain ${isFlipped ? 'scale-x-[-1]' : ''}`} muted />
                         </div>
                     )}
                 </div>
@@ -127,9 +184,17 @@ const SideBySideComparison: React.FC = () => {
             {(video1 || video2) && (
                 <div className="mt-6 space-y-6">
                     <div className="flex items-center gap-4 bg-gray-100 p-3 rounded shadow-inner">
-                        <button onClick={togglePlay} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium w-24" data-testid="play-pause-btn">
-                            {isPlaying ? 'Pause' : 'Play'}
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={() => stepFrame(false)} className="bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 font-medium" data-testid="step-back-btn">
+                                {'<'}
+                            </button>
+                            <button onClick={togglePlay} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-medium w-24" data-testid="play-pause-btn">
+                                {isPlaying ? 'Pause' : 'Play'}
+                            </button>
+                            <button onClick={() => stepFrame(true)} className="bg-gray-200 text-gray-700 px-3 py-2 rounded hover:bg-gray-300 font-medium" data-testid="step-forward-btn">
+                                {'>'}
+                            </button>
+                        </div>
                         <span className="text-xs font-mono text-gray-500 w-12 text-right">{currentTime.toFixed(1)}s</span>
                         <input
                             type="range"
@@ -160,17 +225,62 @@ const SideBySideComparison: React.FC = () => {
                             />
                         </div>
 
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Speed</label>
-                            <select value={playbackRate} onChange={(e) => setPlaybackRate(parseFloat(e.target.value))} className="border p-2 rounded outline-none focus:ring focus:ring-blue-200 bg-white min-w-[80px]">
-                                <option value="0.25">0.25x</option>
-                                <option value="0.5">0.5x</option>
-                                <option value="1">1x</option>
-                                <option value="2">2x</option>
-                            </select>
+                        <div className="flex flex-col gap-1 w-32">
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Speed ({playbackRate}x)</label>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="2"
+                                step="0.1"
+                                value={playbackRate}
+                                onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+                                className="cursor-pointer"
+                                data-testid="playback-speed-slider"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1 w-32">
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">V1 Opacity ({video1Opacity})</label>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="1"
+                                step="0.1"
+                                value={video1Opacity}
+                                onChange={(e) => setVideo1Opacity(parseFloat(e.target.value))}
+                                className="cursor-pointer"
+                                disabled={!isOverlayMode}
+                                data-testid="opacity-1-slider"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1 w-32">
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">V2 Opacity ({video2Opacity})</label>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="1"
+                                step="0.1"
+                                value={video2Opacity}
+                                onChange={(e) => setVideo2Opacity(parseFloat(e.target.value))}
+                                className="cursor-pointer"
+                                disabled={!isOverlayMode}
+                                data-testid="opacity-2-slider"
+                            />
                         </div>
 
                         <div className="flex-1"></div>
+
+                        <label className="flex items-center gap-2 cursor-pointer bg-white border px-4 py-2 rounded shadow-sm hover:bg-gray-50">
+                            <input
+                                type="checkbox"
+                                checked={isFlipped}
+                                onChange={(e) => setIsFlipped(e.target.checked)}
+                                className="rounded w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                data-testid="flip-video-checkbox"
+                            />
+                            <span className="text-sm font-semibold text-gray-800">Flip V2 Horizontally</span>
+                        </label>
 
                         <label className="flex items-center gap-2 cursor-pointer bg-white border px-4 py-2 rounded shadow-sm hover:bg-gray-50">
                             <input
