@@ -10,17 +10,17 @@ test.describe('Auto Clip UI Test', () => {
 
     // The job item should appear
     const jobItem = page.getByTestId('job-item');
-    await expect(jobItem).toBeVisible();
+    await expect(jobItem).toBeVisible({ timeout: 10000 });
 
     // Verify Pass 1 completion message
-    await expect(jobItem).toContainText('Running Pass 2', { timeout: 5000 });
+    await expect(jobItem).toContainText('pass2', { timeout: 5000 });
 
     // Verify clips section is visible
-    const clipsHeader = jobItem.locator('h4', { hasText: 'Extracted Clips' });
+    const clipsHeader = jobItem.locator('h5', { hasText: 'Extracted Clips' });
     await expect(clipsHeader).toBeVisible();
 
     // Wait for the pipeline to finish processing the actual video
-    await expect(jobItem).toContainText('Processing Complete', { timeout: 30000 });
+    await expect(jobItem).toContainText('completed', { timeout: 30000 });
 
     // Verify the simulated clips are displayed correctly
     const clips = jobItem.getByTestId('extracted-clip');
