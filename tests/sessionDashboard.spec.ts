@@ -20,7 +20,7 @@ test.describe('Session Analytics Dashboard', () => {
     const select = page.getByTestId('athlete-select');
     await expect(select).toBeVisible();
 
-    // Wait for the option to be available in the DOM (it might not be "visible" directly in playwright's eyes if dropdown is closed)
+    // Wait for the option to be available in the DOM
     await expect(select.locator(`option:has-text("${athleteName}")`)).toBeAttached();
 
     // Select the athlete we just created

@@ -93,7 +93,7 @@ export const SessionDashboard: React.FC = () => {
       const stepPenalty = (metrics.stepCount || 0) * 1.5;
       const driftPenalty = (metrics.lateralDrift || 0) / 20;
       score = Math.max(0, 10 - stepPenalty - driftPenalty);
-    } catch (e) {
+    } catch {
       score = 5; // Default score
     }
     return score;
@@ -138,6 +138,50 @@ export const SessionDashboard: React.FC = () => {
                 <span>✅ Trending well</span>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
+  const renderFatigueDetection = () => {
+    if (attempts.length < 4) {
+      return null;
+    }
+
+    const sessionScores = attempts.map(calculateScore);
+    const halfIndex = Math.floor(sessionScores.length / 2);
+    const firstHalfAvg = sessionScores.slice(0, halfIndex).reduce((a, b) => a + b, 0) / halfIndex;
+    const secondHalfAvg = sessionScores.slice(halfIndex).reduce((a, b) => a + b, 0) / (sessionScores.length - halfIndex);
+    const scoreDrop = firstHalfAvg - secondHalfAvg;
+
+    const isFatigueDetected = scoreDrop > 1.0;
+
+    const minScore = Math.min(...sessionScores);
+    const maxScore = Math.max(...sessionScores);
+    const spread = maxScore - minScore;
+
+    return (
+      <div className="mt-4 p-4 border rounded bg-yellow-50" data-testid="fatigue-detection">
+        <h4 className="text-md font-semibold text-yellow-800 mb-2">Fatigue & Workload</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">In-Session Fatigue</span>
+            <div className={`text-2xl font-bold ${isFatigueDetected ? 'text-orange-600' : 'text-gray-800'}`}>
+              {isFatigueDetected ? `Drop: ${scoreDrop.toFixed(1)} pts` : 'Stable'}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">First half avg: {firstHalfAvg.toFixed(1)}, Second half avg: {secondHalfAvg.toFixed(1)}</div>
+          </div>
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Attempt Distribution</span>
+            <div className="text-2xl font-bold text-gray-800">
+              Spread: {spread.toFixed(1)} pts
+            </div>
+            <div className="text-xs text-gray-400 mt-1">Range: {minScore.toFixed(1)} - {maxScore.toFixed(1)}</div>
+            <div className="text-xs mt-1">
+              {spread > 3.0 ? <span className="text-orange-500">Wide spread (Focus/Fatigue)</span> : <span className="text-green-500">Tight spread (Mastery)</span>}
+            </div>
           </div>
         </div>
       </div>
@@ -234,6 +278,8 @@ export const SessionDashboard: React.FC = () => {
 
               {renderInsights()}
 
+              {selectedSessionId && renderFatigueDetection()}
+
               {renderChart()}
 
               {selectedSessionId && (
@@ -259,7 +305,7 @@ export const SessionDashboard: React.FC = () => {
                             try {
                                 const metrics = JSON.parse(attempt.metrics_json);
                                 metricsPreview = `Impact: ${metrics.impactTime?.toFixed(2)}s, Steps: ${metrics.stepCount}`;
-                            } catch(e) {}
+                            } catch { /* ignore */ }
 
                             return (
                               <tr key={attempt.id} className="border-t">
