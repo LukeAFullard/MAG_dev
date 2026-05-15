@@ -254,7 +254,9 @@ export class PipelineManager {
 
         // Calculate metrics using the smoothed poses
         const metrics = analyzer.analyze(smoothedPoses);
-        updatedClip.landingMetrics = metrics;
+        updatedClip.landingMetrics = { ...metrics, category: clip.category };
+      } else {
+        updatedClip.landingMetrics = { category: clip.category };
       }
       return updatedClip;
     });
