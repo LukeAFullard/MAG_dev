@@ -57,7 +57,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 - [x] **6.1. Develop Technique Baselines & Trend Models:** Analyze raw variance data to build historical baselines and trigger regression alerts. *(Ref: 06_phase_3.md - Athlete Trend Models)*
 - [x] **6.2. Implement Fatigue Detection:** Track consistency scores within single sessions and across weeks to plot workload fatigue curves. *(Ref: 06_phase_3.md - Fatigue Detection)*
 - [x] **6.3. Add Predictive Analytics:** Create Competition Readiness Scores and skill prerequisite tracking based on historical data. *(Ref: 06_phase_3.md - Predictive Analytics)*
-- [ ] **6.4. Enhance Comparative Insights:** Track left/right symmetry indices and cross-apparatus metric correlations. *(Ref: 06_phase_3.md - Advanced Comparative Insights)*
+- [x] **6.4. Enhance Comparative Insights:** Track left/right symmetry indices and cross-apparatus metric correlations. *(Ref: 06_phase_3.md - Advanced Comparative Insights)*
 
 ## Group 7: Mobile App Implementation (Future Phase)
 *Bringing the app to iOS and Android after the desktop version is validated.*

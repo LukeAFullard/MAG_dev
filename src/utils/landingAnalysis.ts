@@ -7,6 +7,8 @@ export interface LandingMetrics {
   minKneeAngle?: number;
   torsoLeanAngle?: number; // relative to vertical in degrees
   lateralDrift?: number; // absolute horizontal movement of COM after impact
+  symmetryIndex?: number; // 0-100 score of left/right balance
+  category?: string; // Apparatus category for comparative analysis
 }
 
 export class LandingAnalyzer {
@@ -57,6 +59,8 @@ export class LandingAnalyzer {
     const impactPose = poses[impactIndex];
     let torsoLeanAngle = 0;
     let minKneeAngle = 180;
+    let minLeftKneeAngle = 180;
+    let minRightKneeAngle = 180;
     let stepCount = 0;
     let timeToStabilization = 0;
     let lateralDrift = 0;
@@ -101,10 +105,15 @@ export class LandingAnalyzer {
       if (!pKp) continue;
 
       // Min knee angle
-      for (const side of [[11, 13, 15], [12, 14, 16]]) { // [hip, knee, ankle]
-        const hip = pKp[side[0]];
-        const knee = pKp[side[1]];
-        const ankle = pKp[side[2]];
+      const sides = [
+        { indices: [11, 13, 15], isLeft: true }, // Left [hip, knee, ankle]
+        { indices: [12, 14, 16], isLeft: false }  // Right [hip, knee, ankle]
+      ];
+
+      for (const side of sides) {
+        const hip = pKp[side.indices[0]];
+        const knee = pKp[side.indices[1]];
+        const ankle = pKp[side.indices[2]];
         if (hip?.score > 0.3 && knee?.score > 0.3 && ankle?.score > 0.3) {
           const v1x = hip.x - knee.x;
           const v1y = hip.y - knee.y;
@@ -116,6 +125,8 @@ export class LandingAnalyzer {
             const dot = v1x*v2x + v1y*v2y;
             const angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2)))) * (180 / Math.PI);
             if (angle < minKneeAngle) minKneeAngle = angle;
+            if (side.isLeft && angle < minLeftKneeAngle) minLeftKneeAngle = angle;
+            if (!side.isLeft && angle < minRightKneeAngle) minRightKneeAngle = angle;
           }
         }
       }
@@ -149,13 +160,21 @@ export class LandingAnalyzer {
         timeToStabilization = 0;
     }
 
+    // Symmetry Index: 0-100 based on difference between left and right min knee angles
+    // Max practical difference ~90 degrees.
+    const kneeAngleDiff = Math.abs(minLeftKneeAngle - minRightKneeAngle);
+    // If difference is 0, symmetry is 100. If difference >= 45, symmetry is 0.
+    let symmetryIndex = 100 - (kneeAngleDiff / 45) * 100;
+    symmetryIndex = Math.max(0, Math.min(100, symmetryIndex));
+
     return {
       impactTime: impactPose.time,
       timeToStabilization: Number(timeToStabilization.toFixed(2)),
       stepCount,
       minKneeAngle: Number(minKneeAngle.toFixed(1)),
       torsoLeanAngle: Number(torsoLeanAngle.toFixed(1)),
-      lateralDrift: Number(lateralDrift.toFixed(1))
+      lateralDrift: Number(lateralDrift.toFixed(1)),
+      symmetryIndex: Number(symmetryIndex.toFixed(1))
     };
   }
 }

@@ -203,6 +203,88 @@ export const SessionDashboard: React.FC = () => {
   };
 
 
+  const renderComparativeInsights = () => {
+    if (allAttempts.length < 3) {
+      return null;
+    }
+
+    // Calculate Symmetry Index average
+    let validSymmetryAttempts = 0;
+    const symmetryAvg = allAttempts.reduce((acc, attempt) => {
+      try {
+        const metrics = JSON.parse(attempt.metrics_json);
+        if (metrics.symmetryIndex !== undefined) {
+          validSymmetryAttempts++;
+          return acc + metrics.symmetryIndex;
+        }
+      } catch { /* ignore */ }
+      return acc;
+    }, 0) / (validSymmetryAttempts || 1);
+
+    const symmetryStatus = validSymmetryAttempts === 0 ? 'N/A' :
+                           symmetryAvg >= 90 ? 'Excellent' :
+                           symmetryAvg >= 75 ? 'Good' : 'Needs Work';
+
+    // Group by attempt.category via parsed metrics_json
+    const categoryScores: Record<string, number[]> = {};
+    allAttempts.forEach(attempt => {
+      try {
+        const metrics = JSON.parse(attempt.metrics_json);
+        const cat = metrics.category || 'Attempt';
+        const score = calculateScore(attempt);
+        if (!categoryScores[cat]) {
+          categoryScores[cat] = [];
+        }
+        categoryScores[cat].push(score);
+      } catch { /* ignore */ }
+    });
+
+    let crossApparatusData = "N/A (Not enough apparatus data)";
+    let crossApparatusSubtext = "Record more attempts across events";
+
+    const categories = Object.keys(categoryScores);
+    if (categories.length > 1) {
+      const avgScores = categories.map(cat => ({
+        cat,
+        avg: categoryScores[cat].reduce((a, b) => a + b, 0) / categoryScores[cat].length
+      }));
+      // Sort descending
+      avgScores.sort((a, b) => b.avg - a.avg);
+
+      const best = avgScores[0];
+      const worst = avgScores[avgScores.length - 1];
+
+      if (best.cat !== worst.cat) {
+        const diff = best.avg - worst.avg;
+        crossApparatusData = `${best.cat} > ${worst.cat} (+${diff.toFixed(1)} pts)`;
+        crossApparatusSubtext = "Performance delta between best and worst events";
+      }
+    }
+
+    return (
+      <div className="mt-4 p-4 border rounded bg-purple-50" data-testid="comparative-insights">
+        <h4 className="text-md font-semibold text-purple-800 mb-2">Comparative Insights</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">L/R Biomechanical Symmetry</span>
+            <div className={`text-2xl font-bold ${symmetryAvg >= 85 ? 'text-green-600' : 'text-yellow-600'}`}>
+              {validSymmetryAttempts > 0 ? `${symmetryAvg.toFixed(1)} / 100` : 'N/A'}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">Status: <span className="font-medium text-gray-700">{symmetryStatus}</span></div>
+          </div>
+
+          <div className="bg-white p-3 rounded border shadow-sm">
+             <span className="text-xs text-gray-500 uppercase tracking-wider">Cross-Apparatus Correlation</span>
+             <div className="text-lg font-bold text-gray-800 mt-1">
+               {crossApparatusData}
+             </div>
+             <div className="text-xs text-gray-400 mt-1">{crossApparatusSubtext}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderFatigueDetection = () => {
     if (attempts.length < 4) {
       return null;
@@ -337,6 +419,8 @@ export const SessionDashboard: React.FC = () => {
               {renderInsights()}
 
               {renderPredictiveAnalytics()}
+
+              {renderComparativeInsights()}
 
               {selectedSessionId && renderFatigueDetection()}
 
