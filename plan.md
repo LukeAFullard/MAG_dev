@@ -49,7 +49,7 @@ This document outlines the sequential step-by-step implementation plan for the M
 - [x] **5.2. Add Advanced Temporal Smoothing:** Implement Kalman filtering and trajectory smoothing across keypoints. *(Ref: 05_phase_2.md - Advanced Temporal Smoothing)*
 - [x] **5.3. Build Apparatus-Aware Constraints:** Integrate fixed geometry logic for Floor, Pommel Horse, Vault, High Bar/P-Bars, and Rings. *(Ref: 08_physics_logic_engine.md - Apparatus-Specific Constraints)*
 - [x] **5.4. Enforce Human Biomechanical Constraints:** Apply optimization algorithms to limit impossible joint angles, enforce limb length consistency, and prevent teleportation. *(Ref: 08_physics_logic_engine.md - Human Biomechanical Constraints)*
-- [ ] **5.5. Implement "Chalk & Noise" Filter:** Add dynamic background subtraction to keep focus on the primary athlete. *(Ref: 07_additional_features.md - Environmental Resilience)*
+- [x] **5.5. Implement "Chalk & Noise" Filter:** Add dynamic background subtraction to keep focus on the primary athlete. *(Ref: 07_additional_features.md - Environmental Resilience)*
 
 ## Group 6: Phase 3 - Advanced Insights
 *Building longitudinal tracking and proactive analysis.*
