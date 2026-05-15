@@ -76,12 +76,25 @@ const App: React.FC = () => {
     pipeline.startJob(`demo_video_${Date.now()}.mp4`);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      const pipeline = PipelineManager.getInstance();
-      pipeline.startJob(file.name, file);
+
+      try {
+        // 1. Save original video to OPFS
+        const { saveVideoToOPFS } = await import('./db');
+        const opfsFilename = await saveVideoToOPFS(file);
+        console.log(`Saved video to OPFS: ${opfsFilename}`);
+
+        // 2. Start the processing pipeline
+        const pipeline = PipelineManager.getInstance();
+        pipeline.startJob(opfsFilename, file); // Pass the OPFS filename so it can be tracked
+      } catch (err) {
+        console.error('Failed to save file to OPFS', err);
+        alert('Failed to process video file. Ensure your browser supports OPFS.');
+      }
+
       // Reset input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -94,7 +107,7 @@ const App: React.FC = () => {
 
     try {
       const { updateAttemptMetrics } = await import('./db');
-      const metrics = JSON.parse(selectedAttemptForAnnotation.metrics_json);
+      const metrics = JSON.parse(selectedAttemptForAnnotation.metrics_json || '{}');
       metrics.poses = poses; // Update the poses in the JSON
       const updatedMetricsJson = JSON.stringify(metrics);
 

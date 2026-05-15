@@ -19,9 +19,9 @@ This document outlines the implementation plan to replace currently mocked or si
 **Goal:** Implement true file deletion via the Origin Private File System (OPFS).
 
 **Implementation Plan:**
-- [ ] **OPFS Integration:** Implement utility functions to read, write, and delete raw video blobs using the OPFS API (`navigator.storage.getDirectory()`).
-- [ ] **Update Upload Logic:** Modify `handleFileUpload` in `App.tsx` (or the pipeline) to save the uploaded file into OPFS and store the OPFS path/handle identifier in the database's `video_path` column.
-- [ ] **Implement Deletion:** Update `pruneOldVideos` in `src/db/index.ts`. Before nullifying the `video_path` row in SQLite, retrieve the file identifier, access OPFS, and invoke `fileHandle.remove()` to free up local disk space.
+- [x] **OPFS Integration:** Implement utility functions to read, write, and delete raw video blobs using the OPFS API (`navigator.storage.getDirectory()`).
+- [x] **Update Upload Logic:** Modify `handleFileUpload` in `App.tsx` (or the pipeline) to save the uploaded file into OPFS and store the OPFS path/handle identifier in the database's `video_path` column.
+- [x] **Implement Deletion:** Update `pruneOldVideos` in `src/db/index.ts`. Before nullifying the `video_path` row in SQLite, retrieve the file identifier, access OPFS, and invoke `fileHandle.remove()` to free up local disk space.
 
 ## 3. Camera Calibration Workflow (`src/components/CameraCalibration.tsx`)
 

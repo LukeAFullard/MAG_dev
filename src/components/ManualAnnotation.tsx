@@ -43,7 +43,8 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
 
   useEffect(() => {
     setPoses(initialPoses);
-  }, [initialPoses]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl]); // Only reset poses when the active video actually changes, not on every re-render of the parent
 
   // Find the closest pose data to the current time
   useEffect(() => {
@@ -97,6 +98,15 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
   }, []);
 
   useEffect(() => {
+    // Cleanup blob URLs to prevent memory leaks
+    return () => {
+        if (videoUrl && videoUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(videoUrl);
+        }
+    }
+  }, [videoUrl]);
+
+  useEffect(() => {
     drawCanvas();
   }, [lines, currentLine, currentKeypoints, mode]);
 
@@ -108,6 +118,11 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw current frame onto canvas BEFORE drawing overlays
+    if (video && video.readyState >= 2) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
 
     // Draw lines
     ctx.strokeStyle = 'red';
@@ -124,11 +139,6 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
       ctx.moveTo(currentLine.x1, currentLine.y1);
       ctx.lineTo(currentLine.x2, currentLine.y2);
       ctx.stroke();
-    }
-
-    // Draw current frame onto canvas
-    if (video && video.readyState >= 2) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     }
 
     // Draw pose points
