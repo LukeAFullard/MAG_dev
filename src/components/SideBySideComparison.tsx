@@ -13,7 +13,8 @@ const SideBySideComparison: React.FC = () => {
     const [currentTime, setCurrentTime] = useState(0);
     const [syncPoint1, setSyncPoint1] = useState<number | null>(null);
     const [syncPoint2, setSyncPoint2] = useState<number | null>(null);
-    const [videoOpacity, setVideoOpacity] = useState(0.5);
+    const [video1Opacity, setVideo1Opacity] = useState(1.0);
+    const [video2Opacity, setVideo2Opacity] = useState(0.5);
     const [isFlipped, setIsFlipped] = useState(false);
 
     const handleFileUpload1 = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,12 +169,12 @@ const SideBySideComparison: React.FC = () => {
 
                 <div className={`${isOverlayMode ? 'relative w-full aspect-video' : 'flex w-full h-full'}`}>
                     {video1 && (
-                        <div className={`${isOverlayMode ? 'absolute inset-0' : 'flex-1 border-r border-gray-800'}`}>
+                        <div className={`${isOverlayMode ? 'absolute inset-0' : 'flex-1 border-r border-gray-800'}`} style={{ opacity: isOverlayMode ? video1Opacity : 1 }}>
                             <video ref={video1Ref} src={video1} className="w-full h-full object-contain" muted={isOverlayMode || !!video2} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
                         </div>
                     )}
                     {video2 && (
-                        <div className={`${isOverlayMode ? 'absolute inset-0 mix-blend-screen pointer-events-none' : 'flex-1'}`} style={{ opacity: isOverlayMode ? videoOpacity : 1 }}>
+                        <div className={`${isOverlayMode ? 'absolute inset-0 mix-blend-screen pointer-events-none' : 'flex-1'}`} style={{ opacity: isOverlayMode ? video2Opacity : 1 }}>
                             <video ref={video2Ref} src={video2} className={`w-full h-full object-contain ${isFlipped ? 'scale-x-[-1]' : ''}`} muted />
                         </div>
                     )}
@@ -239,17 +240,32 @@ const SideBySideComparison: React.FC = () => {
                         </div>
 
                         <div className="flex flex-col gap-1 w-32">
-                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">V2 Opacity ({videoOpacity})</label>
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">V1 Opacity ({video1Opacity})</label>
                             <input
                                 type="range"
                                 min="0.1"
                                 max="1"
                                 step="0.1"
-                                value={videoOpacity}
-                                onChange={(e) => setVideoOpacity(parseFloat(e.target.value))}
+                                value={video1Opacity}
+                                onChange={(e) => setVideo1Opacity(parseFloat(e.target.value))}
                                 className="cursor-pointer"
                                 disabled={!isOverlayMode}
-                                data-testid="opacity-slider"
+                                data-testid="opacity-1-slider"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-1 w-32">
+                            <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">V2 Opacity ({video2Opacity})</label>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="1"
+                                step="0.1"
+                                value={video2Opacity}
+                                onChange={(e) => setVideo2Opacity(parseFloat(e.target.value))}
+                                className="cursor-pointer"
+                                disabled={!isOverlayMode}
+                                data-testid="opacity-2-slider"
                             />
                         </div>
 
