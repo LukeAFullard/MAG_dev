@@ -40,6 +40,8 @@ export class PoseExtractor {
           return;
         }
 
+        let lastCOM: {x: number, y: number} | undefined = undefined;
+
         const extractFrame = async () => {
           if (currentTime > endTime) {
             URL.revokeObjectURL(url);
@@ -63,35 +65,69 @@ export class PoseExtractor {
             const results = await engine.runInference('pose-estimation', 'rtmw', imageBitmap, [imageBitmap]);
 
             if (results && results.length > 0) {
-              // Get the first person detected
-              const person = results[0];
-              const keypoints = person.keypoints || [];
+              // Process all detected persons to find their COMs
+              const personsWithCOM = results.map((person: any) => {
+                const keypoints = person.keypoints || [];
+                let com: {x: number, y: number} | undefined = undefined;
+                if (keypoints.length > 0) {
+                  const ls = keypoints[5];
+                  const rs = keypoints[6];
+                  const lh = keypoints[11];
+                  const rh = keypoints[12];
 
-              // Calculate rough Center of Mass (COM) using hips and shoulders
-              let com: {x: number, y: number} | undefined = undefined;
-              if (keypoints.length > 0) {
-                // Approximate COM (usually around hips/pelvis in humans)
-                // In COCO format (or RTMW which extends it):
-                // 5: left shoulder, 6: right shoulder, 11: left hip, 12: right hip
-                const ls = keypoints[5];
-                const rs = keypoints[6];
-                const lh = keypoints[11];
-                const rh = keypoints[12];
-
-                if (ls && rs && lh && rh &&
-                    ls.score > 0.3 && rs.score > 0.3 && lh.score > 0.3 && rh.score > 0.3) {
-                  // Average of hips is a reasonable COM proxy for simple 2D tracking
-                  com = {
-                    x: (lh.x + rh.x) / 2,
-                    y: (lh.y + rh.y) / 2
-                  };
+                  if (ls && rs && lh && rh &&
+                      ls.score > 0.3 && rs.score > 0.3 && lh.score > 0.3 && rh.score > 0.3) {
+                    com = {
+                      x: (lh.x + rh.x) / 2,
+                      y: (lh.y + rh.y) / 2
+                    };
+                  }
                 }
+                return { person, keypoints, com };
+              });
+
+              // Select the primary athlete
+              let primaryAthlete = personsWithCOM[0]; // Default to first detected
+
+              if (lastCOM) {
+                // If we have a previous COM, find the person closest to it to maintain lock
+                let minDistance = Infinity;
+                for (const p of personsWithCOM) {
+                  if (p.com) {
+                    const dist = Math.sqrt(Math.pow(p.com.x - lastCOM.x, 2) + Math.pow(p.com.y - lastCOM.y, 2));
+                    if (dist < minDistance) {
+                      minDistance = dist;
+                      primaryAthlete = p;
+                    }
+                  }
+                }
+                // If distance is too large (e.g. tracking lost or teleportation), fallback to largest bounding box or center
+                // But simple Euclidean distance tracking is effective for primary subject lock
+              } else {
+                 // For the first frame, prefer the person closest to the center of the frame
+                 let minCenterDist = Infinity;
+                 const centerX = targetWidth / 2;
+                 const centerY = targetHeight / 2;
+
+                 for (const p of personsWithCOM) {
+                     if (p.com) {
+                         const dist = Math.sqrt(Math.pow(p.com.x - centerX, 2) + Math.pow(p.com.y - centerY, 2));
+                         if (dist < minCenterDist) {
+                             minCenterDist = dist;
+                             primaryAthlete = p;
+                         }
+                     }
+                 }
+              }
+
+              if (primaryAthlete.com) {
+                 lastCOM = primaryAthlete.com;
               }
 
               poses.push({
                 time: Number(currentTime.toFixed(2)),
-                keypoints,
-                com
+                keypoints: primaryAthlete.keypoints,
+                com: primaryAthlete.com
               });
             }
 

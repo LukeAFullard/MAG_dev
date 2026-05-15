@@ -19,7 +19,13 @@ export class AutoClipExtractor {
   private preRoll = 0.5; // Seconds to add before motion start
   private postRoll = 0.5; // Seconds to add after motion end
 
+  // Chalk & Noise Filter configuration
+  private backgroundAlpha = 0.1; // Learning rate for EMA background subtraction
+
   public async process(file: File, onProgress?: (progress: number) => void): Promise<ExtractedClip[]> {
+    // Phase 1: Extract Audio Peaks for "thwack" detection (Audio-Visual Fusion)
+    const audioPeaks = await this.extractAudioPeaks(file);
+
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       const url = URL.createObjectURL(file);
@@ -45,7 +51,8 @@ export class AutoClipExtractor {
         let currentTime = 0;
         const fps = 10; // Sample 10 frames per second for motion
         const timeStep = 1 / fps;
-        let prevImageData: ImageData | null = null;
+        // Background array for Exponential Moving Average (EMA)
+        let backgroundData: Float32Array | null = null;
 
         interface ActiveSegment {
             start: number;
@@ -58,16 +65,28 @@ export class AutoClipExtractor {
         video.onseeked = () => {
           ctx.drawImage(video, 0, 0, width, height);
           const currentImageData = ctx.getImageData(0, 0, width, height);
+          const totalPixels = width * height;
 
-          if (prevImageData) {
+          if (!backgroundData) {
+            // Initialize background with the first frame
+            backgroundData = new Float32Array(currentImageData.data.length);
+            for (let i = 0; i < currentImageData.data.length; i++) {
+              backgroundData[i] = currentImageData.data[i];
+            }
+          } else {
              let changedPixels = 0;
-             const totalPixels = width * height;
 
-             // Simple frame differencing
+             // Dynamic Background Subtraction (EMA)
              for (let i = 0; i < currentImageData.data.length; i += 4) {
-                 const diffR = Math.abs(currentImageData.data[i] - prevImageData.data[i]);
-                 const diffG = Math.abs(currentImageData.data[i+1] - prevImageData.data[i+1]);
-                 const diffB = Math.abs(currentImageData.data[i+2] - prevImageData.data[i+2]);
+                 // Calculate difference from background model
+                 const diffR = Math.abs(currentImageData.data[i] - backgroundData[i]);
+                 const diffG = Math.abs(currentImageData.data[i+1] - backgroundData[i+1]);
+                 const diffB = Math.abs(currentImageData.data[i+2] - backgroundData[i+2]);
+
+                 // Update background model (EMA)
+                 backgroundData[i] = backgroundData[i] * (1 - this.backgroundAlpha) + currentImageData.data[i] * this.backgroundAlpha;
+                 backgroundData[i+1] = backgroundData[i+1] * (1 - this.backgroundAlpha) + currentImageData.data[i+1] * this.backgroundAlpha;
+                 backgroundData[i+2] = backgroundData[i+2] * (1 - this.backgroundAlpha) + currentImageData.data[i+2] * this.backgroundAlpha;
 
                  // If the average color difference is above threshold
                  if ((diffR + diffG + diffB) / 3 > this.motionThreshold) {
@@ -76,7 +95,13 @@ export class AutoClipExtractor {
              }
 
              const activityLevel = changedPixels / totalPixels;
-             const isActive = activityLevel > this.activityThreshold;
+
+             // Check if there is an audio peak near the current time
+             const hasAudioPeak = audioPeaks.some(peakTime => Math.abs(peakTime - currentTime) < 0.5);
+
+             // Boost activity threshold if there's an audio peak, helping clip detection
+             const adjustedThreshold = hasAudioPeak ? this.activityThreshold * 0.5 : this.activityThreshold;
+             const isActive = activityLevel > adjustedThreshold;
 
              if (isActive) {
                  silenceDuration = 0;
@@ -100,8 +125,6 @@ export class AutoClipExtractor {
                  }
              }
           }
-
-          prevImageData = currentImageData;
 
           if (onProgress) {
               onProgress((currentTime / duration) * 100);
@@ -134,9 +157,9 @@ export class AutoClipExtractor {
         };
 
         video.onerror = (e) => {
-        URL.revokeObjectURL(url);
-        reject(e);
-      };
+          URL.revokeObjectURL(url);
+          reject(e);
+        };
         video.currentTime = currentTime; // Start the seek loop
       };
 
@@ -145,5 +168,58 @@ export class AutoClipExtractor {
         reject(e);
       };
     });
+  }
+
+  /**
+   * Analyzes the audio track of the video file to detect loud peaks (thwacks).
+   */
+  private async extractAudioPeaks(file: File): Promise<number[]> {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const channelData = audioBuffer.getChannelData(0); // Use first channel
+      const sampleRate = audioBuffer.sampleRate;
+
+      const peaks: number[] = [];
+      const windowSize = Math.floor(sampleRate * 0.1); // 100ms window
+
+      let maxAmplitude = 0;
+      for (let i = 0; i < channelData.length; i++) {
+        if (Math.abs(channelData[i]) > maxAmplitude) {
+          maxAmplitude = Math.abs(channelData[i]);
+        }
+      }
+
+      // Threshold is 80% of max amplitude, but at least 0.1
+      const peakThreshold = Math.max(0.1, maxAmplitude * 0.8);
+
+      let lastPeakTime = -1;
+
+      for (let i = 0; i < channelData.length; i += windowSize) {
+        let windowMax = 0;
+        const end = Math.min(i + windowSize, channelData.length);
+        for (let j = i; j < end; j++) {
+          if (Math.abs(channelData[j]) > windowMax) {
+            windowMax = Math.abs(channelData[j]);
+          }
+        }
+
+        if (windowMax > peakThreshold) {
+          const time = i / sampleRate;
+          // Ensure we don't cluster peaks too closely (min 1s apart)
+          if (time - lastPeakTime > 1.0) {
+            peaks.push(time);
+            lastPeakTime = time;
+          }
+        }
+      }
+
+      return peaks;
+    } catch (e) {
+      console.warn("Could not extract audio peaks, falling back to visual only", e);
+      return [];
+    }
   }
 }
