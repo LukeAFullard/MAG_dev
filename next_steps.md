@@ -29,9 +29,9 @@ This document outlines the implementation plan to replace currently mocked or si
 **Goal:** Implement real image analysis to establish a floor plane and detect background shifts.
 
 **Implementation Plan:**
-- [ ] **Real Video Stream:** Hook up a live camera feed (via `navigator.mediaDevices.getUserMedia()`) or require the user to provide a short setup clip.
-- [ ] **Floor Plane Estimation:** Pass the calibration frame through the `PoseExtractor`. Ask the user to stand still. Extract their ankle coordinates and calculate the 2D line equation that represents the floor plane. Store this equation in the database/state.
-- [ ] **Fail-safe Implementation:** During active recording or Pass 1, periodically sample a background region (e.g., top 10% of the frame where athletes shouldn't be). If the pixel differencing (like in `autoClip.ts`) detects a massive sudden shift across the *entire* background, trigger the `onBumpDetected` callback.
+- [x] **Real Video Stream:** Hook up a live camera feed (via `navigator.mediaDevices.getUserMedia()`) or require the user to provide a short setup clip.
+- [x] **Floor Plane Estimation:** Pass the calibration frame through the `PoseExtractor`. Ask the user to stand still. Extract their ankle coordinates and calculate the 2D line equation that represents the floor plane. Store this equation in the database/state.
+- [x] **Fail-safe Implementation:** During active recording or Pass 1, periodically sample a background region (e.g., top 10% of the frame where athletes shouldn't be). If the pixel differencing (like in `autoClip.ts`) detects a massive sudden shift across the *entire* background, trigger the `onBumpDetected` callback.
 
 ## 4. Pipeline Simulation Mode (`src/pipeline.ts`)
 
@@ -39,7 +39,7 @@ This document outlines the implementation plan to replace currently mocked or si
 **Goal:** Remove the mock data and gracefully handle edge cases using actual pipeline logic.
 
 **Implementation Plan:**
-- [ ] **Enforce File Requirement:** Refactor `startJob` to make the `File` argument mandatory, or at least require a valid OPFS path.
-- [ ] **Remove Mock Branches:** Delete the `else` branches in `pass1_autoClipExtraction` and `pass2_poseEstimation` that generate dummy data.
-- [ ] **Graceful Failure:** If a clip extraction yields zero clips, the pipeline should immediately transition to 'completed' with a message ("No motion detected"), rather than generating dummy clips to satisfy downstream processes.
-- [ ] **Test File Integration:** Update `App.tsx`'s "Simulate Video Drop" button to fetch a small, actual test video (e.g., from the `public/` directory) and pass it into the pipeline, proving the pipeline works end-to-end without needing user input every time.
+- [x] **Enforce File Requirement:** Refactor `startJob` to make the `File` argument mandatory, or at least require a valid OPFS path.
+- [x] **Remove Mock Branches:** Delete the `else` branches in `pass1_autoClipExtraction` and `pass2_poseEstimation` that generate dummy data.
+- [x] **Graceful Failure:** If a clip extraction yields zero clips, the pipeline should immediately transition to 'completed' with a message ("No motion detected"), rather than generating dummy clips to satisfy downstream processes.
+- [x] **Test File Integration:** Update `App.tsx`'s "Simulate Video Drop" button to fetch a small, actual test video (e.g., from the `public/` directory) and pass it into the pipeline, proving the pipeline works end-to-end without needing user input every time.

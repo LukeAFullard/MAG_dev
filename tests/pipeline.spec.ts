@@ -20,13 +20,12 @@ test.describe('Video Processing Pipeline', () => {
     // Verify it passes through Pass 2 (since pass 1 might be too fast to catch)
     await expect(jobItem).toContainText('Running Pass 2');
 
-    // Verify extracted clips are displayed (simulation mode injects these)
+    // Verify extracted clips are displayed (it processes a real video now)
     const clip = page.getByTestId('extracted-clip').first();
     await expect(clip).toBeVisible();
-    await expect(clip).toContainText('Vault');
-    await expect(clip).toContainText('[1.5s - 3.2s]');
+    await expect(clip).toContainText('Attempt'); // Default category
 
     // Wait for completion
-    await expect(jobItem).toContainText('Processing Complete', { timeout: 10000 });
+    await expect(jobItem).toContainText('Processing Complete', { timeout: 30000 });
   });
 });

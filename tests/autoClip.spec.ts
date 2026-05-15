@@ -19,16 +19,16 @@ test.describe('Auto Clip UI Test', () => {
     const clipsHeader = jobItem.locator('h4', { hasText: 'Extracted Clips' });
     await expect(clipsHeader).toBeVisible();
 
+    // Wait for the pipeline to finish processing the actual video
+    await expect(jobItem).toContainText('Processing Complete', { timeout: 30000 });
+
     // Verify the simulated clips are displayed correctly
     const clips = jobItem.getByTestId('extracted-clip');
-    await expect(clips).toHaveCount(2);
+    // We expect at least one clip from the test video
+    await expect(clips).not.toHaveCount(0);
 
     const firstClip = clips.nth(0);
-    await expect(firstClip).toContainText('Vault');
-    await expect(firstClip).toContainText('[1.5s - 3.2s]');
-
-    const secondClip = clips.nth(1);
-    await expect(secondClip).toContainText('Floor');
-    await expect(secondClip).toContainText('[5s - 7.8s]');
+    // Since it's a real test clip now, category defaults to 'Attempt'
+    await expect(firstClip).toContainText('Attempt');
   });
 });
