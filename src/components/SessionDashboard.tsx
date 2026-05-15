@@ -460,14 +460,24 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
                                 <td className="px-4 py-2 text-gray-800">{new Date(attempt.created_at).toLocaleTimeString()}</td>
                                 <td className="px-4 py-2 text-blue-600 cursor-pointer hover:underline" onClick={() => {
                                   if (onSelectAttempt) {
-                                    onSelectAttempt(attempt);
-                                    // Smooth scroll down to the manual annotation section
-                                    document.querySelector('[data-testid="manual-annotation"]')?.scrollIntoView({ behavior: 'smooth' });
+                                    // If video_path is an OPFS filename, we need to load it
+                                    if (attempt.video_path && attempt.video_path.startsWith('video_')) {
+                                        import('../db').then(({ getVideoFromOPFS }) => {
+                                            getVideoFromOPFS(attempt.video_path!).then(url => {
+                                                onSelectAttempt({ ...attempt, video_path: url });
+                                                document.querySelector('[data-testid="manual-annotation"]')?.scrollIntoView({ behavior: 'smooth' });
+                                            });
+                                        });
+                                    } else {
+                                        // Legacy or mock data
+                                        onSelectAttempt(attempt);
+                                        document.querySelector('[data-testid="manual-annotation"]')?.scrollIntoView({ behavior: 'smooth' });
+                                    }
                                   } else {
                                     alert(`Drill-down: Showing video for Attempt ${attempt.id}`);
                                   }
                                 }}>
-                                  {attempt.video_path ? 'View / Annotate' : 'No Video'}
+                                  {attempt.video_path ? (attempt.video_path.startsWith('video_') ? 'View OPFS Video' : 'View / Annotate') : 'No Video'}
                                 </td>
                                 <td className="px-4 py-2 text-gray-600">{metricsPreview}</td>
                               </tr>

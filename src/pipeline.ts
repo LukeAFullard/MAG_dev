@@ -64,6 +64,13 @@ export class PipelineManager {
       this.onJobUpdate(newJob);
     }
 
+    // Process immediately.
+    // If a file is provided, we should probably save it to OPFS *before* processing,
+    // or pass the OPFS path around. For now, the App.tsx might handle OPFS saving
+    // and then call this, or we can just process the File object directly in memory.
+    // Given the architecture, processing the File object directly is fine for Pass 1 & 2.
+    // The database saving happens at the end or in a different layer.
+
     // Start background processing without awaiting
     this.processJob(id, file).catch(err => {
       this.updateJob(id, { status: 'error', message: err.message });

@@ -53,21 +53,67 @@ export async function getAthletes() {
   return await sql`SELECT * FROM athletes ORDER BY name ASC`;
 }
 
+// --- OPFS Utility Functions ---
+
+export async function saveVideoToOPFS(file: File): Promise<string> {
+  const opfsRoot = await navigator.storage.getDirectory();
+  const filename = `video_${Date.now()}_${file.name}`;
+  const fileHandle = await opfsRoot.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(file);
+  await writable.close();
+  return filename;
+}
+
+export async function getVideoFromOPFS(filename: string): Promise<string | null> {
+  try {
+    const opfsRoot = await navigator.storage.getDirectory();
+    const fileHandle = await opfsRoot.getFileHandle(filename);
+    const file = await fileHandle.getFile();
+    return URL.createObjectURL(file);
+  } catch (e) {
+    console.error(`Failed to retrieve video ${filename} from OPFS`, e);
+    return null;
+  }
+}
+
+export async function deleteVideoFromOPFS(filename: string): Promise<boolean> {
+  try {
+    const opfsRoot = await navigator.storage.getDirectory();
+    await opfsRoot.removeEntry(filename);
+    return true;
+  } catch (e) {
+    console.warn(`Failed to delete video ${filename} from OPFS. It may have already been deleted.`, e);
+    return false;
+  }
+}
+
+// --- Pruning Logic ---
+
 export async function pruneOldVideos() {
   const settingsResult = await sql`SELECT value FROM settings WHERE key = 'video_retention_days'`;
   if (settingsResult.length === 0) return;
   const days = parseInt(settingsResult[0].value, 10);
   if (isNaN(days)) return;
 
-  // In a real app we'd also delete the actual files from OPFS.
-  // Here we simulate pruning by nullifying the video_path field for old attempts.
-  const pruneQuery = await sql`
-    UPDATE attempts
-    SET video_path = NULL
+  // Find videos that need to be pruned
+  const oldAttempts = await sql`
+    SELECT id, video_path FROM attempts
     WHERE video_path IS NOT NULL
       AND created_at < datetime('now', '-' || ${days.toString()} || ' days')
   `;
-  return pruneQuery;
+
+  for (const attempt of oldAttempts) {
+    if (attempt.video_path) {
+      // Actually delete the file from OPFS
+      await deleteVideoFromOPFS(attempt.video_path);
+
+      // Update the database to nullify the path
+      await sql`UPDATE attempts SET video_path = NULL WHERE id = ${attempt.id}`;
+    }
+  }
+
+  return oldAttempts.length;
 }
 
 export async function addSession(athleteId: number, notes: string = '') {
