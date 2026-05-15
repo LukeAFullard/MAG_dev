@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAthletes, getSessionsForAthlete, getAttemptsForSession, getRecentAttemptsForAthlete } from '../db';
+import { getAthletes, getSessionsForAthlete, getAttemptsForSession, getRecentAttemptsForAthlete, getAllAttemptsForAthlete } from '../db';
 
 interface Athlete {
   id: number;
@@ -28,6 +28,7 @@ export const SessionDashboard: React.FC = () => {
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [recentAttempts, setRecentAttempts] = useState<Attempt[]>([]);
+  const [allAttempts, setAllAttempts] = useState<Attempt[]>([]);
 
   useEffect(() => {
     // Periodically fetch athletes in case a new one is added in another component
@@ -45,11 +46,13 @@ export const SessionDashboard: React.FC = () => {
     if (selectedAthleteId) {
       fetchSessions(selectedAthleteId);
       fetchRecentAttempts(selectedAthleteId);
+      fetchAllAttempts(selectedAthleteId);
       setSelectedSessionId(null);
       setAttempts([]);
     } else {
       setSessions([]);
       setRecentAttempts([]);
+      setAllAttempts([]);
       setSelectedSessionId(null);
       setAttempts([]);
     }
@@ -65,6 +68,11 @@ export const SessionDashboard: React.FC = () => {
     setRecentAttempts(data as Attempt[]);
   };
 
+  const fetchAllAttempts = async (athleteId: number) => {
+    const data = await getAllAttemptsForAthlete(athleteId);
+    setAllAttempts(data as Attempt[]);
+  };
+
   useEffect(() => {
     if (selectedSessionId) {
       fetchAttempts(selectedSessionId);
@@ -78,6 +86,64 @@ export const SessionDashboard: React.FC = () => {
     setAttempts(data as Attempt[]);
   };
 
+  const calculateScore = (attempt: Attempt) => {
+    let score = 0;
+    try {
+      const metrics = JSON.parse(attempt.metrics_json);
+      const stepPenalty = (metrics.stepCount || 0) * 1.5;
+      const driftPenalty = (metrics.lateralDrift || 0) / 20;
+      score = Math.max(0, 10 - stepPenalty - driftPenalty);
+    } catch (e) {
+      score = 5; // Default score
+    }
+    return score;
+  };
+
+  const renderInsights = () => {
+    if (allAttempts.length < 5) {
+      return <p className="text-gray-500 text-sm mt-2">Not enough historical data to establish baselines. Keep recording!</p>;
+    }
+
+    const allScores = allAttempts.map(calculateScore);
+    const baselineAvg = allScores.reduce((a, b) => a + b, 0) / allScores.length;
+
+    // Compare recent 5 attempts against baseline
+    const recent5 = recentAttempts.slice(0, 5);
+    const recentScores = recent5.map(calculateScore);
+    const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : baselineAvg;
+
+    const regressionThreshold = 1.5; // If recent avg is 1.5 points lower than baseline, flag it
+    const isRegression = (baselineAvg - recentAvg) > regressionThreshold;
+
+    return (
+      <div className="mt-4 p-4 border rounded bg-blue-50" data-testid="advanced-insights">
+        <h4 className="text-md font-semibold text-blue-800 mb-2">Advanced Insights & Trend Models</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Historical Baseline</span>
+            <div className="text-2xl font-bold text-gray-800">{baselineAvg.toFixed(1)} / 10</div>
+            <div className="text-xs text-gray-400 mt-1">Calculated across {allAttempts.length} total attempts</div>
+          </div>
+          <div className={`p-3 rounded border shadow-sm ${isRegression ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Recent Trend (Last 5)</span>
+            <div className={`text-2xl font-bold ${isRegression ? 'text-red-600' : 'text-gray-800'}`}>
+              {recentAvg.toFixed(1)} / 10
+            </div>
+            {isRegression ? (
+              <div className="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
+                <span>⚠️ Regression Detected</span>
+              </div>
+            ) : (
+              <div className="text-xs text-green-500 mt-1 font-medium flex items-center gap-1">
+                <span>✅ Trending well</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderChart = () => {
     if (recentAttempts.length === 0) return <p className="text-gray-500 text-sm">No recent attempts data for chart.</p>;
 
@@ -89,18 +155,7 @@ export const SessionDashboard: React.FC = () => {
         <h4 className="text-md font-semibold mb-2">Recent Attempts Consistency</h4>
         <div className="flex items-end gap-2 h-32">
           {recentAttempts.slice().reverse().map((attempt) => {
-            // Mock consistency score from metrics_json if possible, else random
-            let score = 0;
-            try {
-              const metrics = JSON.parse(attempt.metrics_json);
-              // Calculate a mock score out of 10 based on landing metrics
-              const stepPenalty = (metrics.stepCount || 0) * 1.5;
-              const driftPenalty = (metrics.lateralDrift || 0) / 20;
-              score = Math.max(0, 10 - stepPenalty - driftPenalty);
-            } catch (e) {
-              score = 5; // Default score
-            }
-
+            const score = calculateScore(attempt);
             const height = `${(score / maxScore) * 100}%`;
             return (
               <div
@@ -176,6 +231,8 @@ export const SessionDashboard: React.FC = () => {
               <h3 className="font-semibold text-gray-700 mb-2">
                 Overview: {athletes.find(a => a.id === selectedAthleteId)?.name}
               </h3>
+
+              {renderInsights()}
 
               {renderChart()}
 
