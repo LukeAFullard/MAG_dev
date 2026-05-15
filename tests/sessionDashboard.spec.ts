@@ -34,5 +34,8 @@ test.describe('Session Analytics Dashboard', () => {
 
     // Check chart container message
     await expect(page.getByText('No recent attempts data for chart.')).toBeVisible();
+
+    // Check that Predictive Analytics requires at least 5 attempts to show up (it should be hidden initially)
+    await expect(page.getByTestId('predictive-analytics')).toBeHidden();
   });
 });

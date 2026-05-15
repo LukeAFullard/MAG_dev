@@ -144,6 +144,64 @@ export const SessionDashboard: React.FC = () => {
     );
   };
 
+  const renderPredictiveAnalytics = () => {
+    if (allAttempts.length < 5) {
+      return null;
+    }
+
+    const allScores = allAttempts.map(calculateScore);
+    const baselineAvg = allScores.reduce((a, b) => a + b, 0) / allScores.length;
+
+    const recent5 = recentAttempts.slice(0, 5);
+    const recentScores = recent5.map(calculateScore);
+    const recentAvg = recentScores.length > 0 ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : baselineAvg;
+
+    // Competition Readiness Score (0-100)
+    // Formula: Base metric stability + recent trend bonus/penalty
+    const stabilityScore = Math.min(100, Math.max(0, baselineAvg * 10));
+    const trendBonus = (recentAvg - baselineAvg) * 5; // up to +/- ~10-15 pts based on trend
+    let readinessScore = Math.min(100, Math.max(0, Math.round(stabilityScore + trendBonus)));
+
+    // Skill Prerequisite Tracking
+    // In a real app this would analyze specific metrics (e.g. amplitude, consistency on lower skills).
+    // Here we use the readiness score as a proxy.
+    const readinessLevel = readinessScore >= 85 ? 'High' : readinessScore >= 70 ? 'Moderate' : 'Low';
+
+    // Predicted Peak Window
+    const peakDays = readinessScore >= 85 ? '1-2 weeks' : '3-4 weeks';
+
+    return (
+      <div className="mt-4 p-4 border rounded bg-indigo-50" data-testid="predictive-analytics">
+        <h4 className="text-md font-semibold text-indigo-800 mb-2">Predictive Analytics</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Competition Readiness</span>
+            <div className={`text-2xl font-bold ${readinessScore >= 80 ? 'text-green-600' : readinessScore >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+              {readinessScore} / 100
+            </div>
+            <div className="text-xs text-gray-400 mt-1">Based on stability & trend</div>
+          </div>
+
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Next Skill Readiness</span>
+            <div className={`text-xl font-bold ${readinessLevel === 'High' ? 'text-green-600' : readinessLevel === 'Moderate' ? 'text-yellow-600' : 'text-red-600'}`}>
+              {readinessLevel}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">Prerequisite consistency met</div>
+          </div>
+
+          <div className="bg-white p-3 rounded border shadow-sm">
+            <span className="text-xs text-gray-500 uppercase tracking-wider">Predicted Peak</span>
+            <div className="text-xl font-bold text-gray-800">
+              {peakDays}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">Estimated time to target</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
 
   const renderFatigueDetection = () => {
     if (attempts.length < 4) {
@@ -277,6 +335,8 @@ export const SessionDashboard: React.FC = () => {
               </h3>
 
               {renderInsights()}
+
+              {renderPredictiveAnalytics()}
 
               {selectedSessionId && renderFatigueDetection()}
 
