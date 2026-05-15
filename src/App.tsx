@@ -71,9 +71,23 @@ const App: React.FC = () => {
     await fetchAthletes();
   };
 
-  const handleSimulateVideo = () => {
-    const pipeline = PipelineManager.getInstance();
-    pipeline.startJob(`demo_video_${Date.now()}.mp4`);
+  const handleSimulateVideo = async () => {
+    try {
+        // Fetch a small test video from the public directory
+        const response = await fetch('/test_clip.mp4');
+        if (!response.ok) throw new Error("Test clip not found");
+
+        const blob = await response.blob();
+        const file = new File([blob], `demo_video_${Date.now()}.mp4`, { type: 'video/mp4' });
+
+        // Use the standard upload flow which saves to OPFS and starts the pipeline
+        const e = { target: { files: [file] } } as unknown as React.ChangeEvent<HTMLInputElement>;
+        handleFileUpload(e);
+
+    } catch (e) {
+        alert("Could not load test video. Please make sure test_clip.mp4 exists in the public directory.");
+        console.error(e);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
