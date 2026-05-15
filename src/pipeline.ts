@@ -232,18 +232,23 @@ export class PipelineManager {
     const { LandingAnalyzer } = await import('./utils/landingAnalysis');
     const { TemporalSmoother } = await import('./utils/temporalSmoothing');
     const { ApparatusConstraints } = await import('./utils/apparatusConstraints');
+    const { HumanBiomechanics } = await import('./utils/humanBiomechanics');
     const analyzer = new LandingAnalyzer();
     const smoother = new TemporalSmoother();
-    const constraints = new ApparatusConstraints();
+    const apparatusConstraints = new ApparatusConstraints();
+    const biomechanics = new HumanBiomechanics();
 
     const updatedClips = job.clips.map(clip => {
       let updatedClip = { ...clip };
       if (clip.poses && clip.poses.length > 0) {
+        // Apply human biomechanical constraints first to ensure base anatomical realism
+        let smoothedPoses = biomechanics.applyConstraints(clip.poses);
+
         // Apply temporal smoothing to the poses
-        let smoothedPoses = smoother.smoothPoses(clip.poses);
+        smoothedPoses = smoother.smoothPoses(smoothedPoses);
 
         // Apply apparatus-specific constraints
-        smoothedPoses = constraints.applyConstraints(smoothedPoses, clip.category, clip.facingCamera);
+        smoothedPoses = apparatusConstraints.applyConstraints(smoothedPoses, clip.category, clip.facingCamera);
 
         updatedClip.poses = smoothedPoses;
 
