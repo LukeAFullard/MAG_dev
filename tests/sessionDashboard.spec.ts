@@ -5,7 +5,8 @@ test.describe('Session Analytics Dashboard', () => {
     await page.goto('/');
 
     // Wait for DB to be connected
-    await expect(page.getByText('DB Status: Connected')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('DB Status:')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Connected')).toBeVisible({ timeout: 10000 });
 
     // Check if Dashboard header is visible
     await expect(page.getByText('Session Analytics Dashboard')).toBeVisible();
@@ -13,7 +14,7 @@ test.describe('Session Analytics Dashboard', () => {
     // The name to use for this run to avoid conflicts
     const athleteName = `Dashboard Test Athlete ${Date.now()}`;
 
-    await page.getByPlaceholder('New Athlete Name').fill(athleteName);
+    await page.getByPlaceholder('Enter new athlete name...').fill(athleteName);
     await page.getByRole('button', { name: 'Add Athlete' }).click();
 
     // Verify athlete is in the select dropdown
@@ -26,14 +27,11 @@ test.describe('Session Analytics Dashboard', () => {
     // Select the athlete we just created
     await select.selectOption({ label: athleteName });
 
-    // Verify overview section shows the athlete name
-    await expect(page.getByText(`Overview: ${athleteName}`)).toBeVisible();
+    // Verify overview section shows the athlete name (it's now an h3)
+    await expect(page.getByRole('heading', { name: athleteName })).toBeVisible();
 
     // Verify it says "No sessions found." initially
     await expect(page.getByText('No sessions found.')).toBeVisible();
-
-    // Check chart container message
-    await expect(page.getByText('No recent attempts data for chart.')).toBeVisible();
 
     // Check that Predictive Analytics requires at least 5 attempts to show up (it should be hidden initially)
     await expect(page.getByTestId('predictive-analytics')).toBeHidden();

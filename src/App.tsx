@@ -7,6 +7,7 @@ import CameraCalibration from './components/CameraCalibration';
 import SideBySideComparison from './components/SideBySideComparison';
 import SessionDashboard from './components/SessionDashboard';
 import ManualAnnotation from './components/ManualAnnotation';
+import { UploadIcon, ActivityIcon, CheckCircleIcon, FileVideoIcon, Loader2Icon } from './components/LucideIcons';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -123,33 +124,65 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
-        <h1 className="text-2xl font-bold">MAG_dev: Gymnastics Analysis Assistant</h1>
-        <div className="flex gap-4">
-          <div className="text-sm">DB Status: <span className="font-mono bg-blue-800 px-2 py-1 rounded">{dbStatus}</span></div>
-          <div className="text-sm">Inference: <span className={`font-mono px-2 py-1 rounded ${inferenceStatus === 'Ready' ? 'bg-green-700' : 'bg-blue-800'}`}>{inferenceStatus} {isWebGPU !== null && `(${isWebGPU ? 'WebGPU' : 'WASM'})`}</span></div>
+      <header className="bg-slate-900 text-slate-50 p-4 shadow-md flex flex-col md:flex-row justify-between items-center border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <ActivityIcon className="w-8 h-8 text-blue-500" />
+          <h1 className="text-2xl font-bold tracking-tight">MAG_dev: Gymnastics Analysis Assistant</h1>
+        </div>
+        <div className="flex gap-4 mt-4 md:mt-0 text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">DB Status:</span>
+            <span className={`px-2.5 py-1 rounded-full text-xs ${dbStatus === 'Connected' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-300'}`}>
+              {dbStatus}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">Inference:</span>
+            <span className={`px-2.5 py-1 rounded-full text-xs ${inferenceStatus === 'Ready' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800 text-slate-300'}`}>
+              {inferenceStatus} {isWebGPU !== null && `(${isWebGPU ? 'WebGPU' : 'WASM'})`}
+            </span>
+          </div>
         </div>
       </header>
-      <main className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6 space-y-8">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Welcome to the Desktop-First Environment</h2>
-            <p className="text-gray-700 mb-6">
-              This is the initial scaffold for the local-first gymnastics video analysis application.
-              From here, we will implement the 3-pass processing pipeline and local storage.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="border border-blue-200 rounded p-4 bg-blue-50">
-                <h3 className="font-bold text-blue-800">Pass 1: Auto-Clip</h3>
-                <p className="text-sm text-blue-600 italic">Immediate motion detection and trimming.</p>
+      <main className="flex-1 p-4 md:p-8 bg-slate-50">
+        <div className="max-w-6xl mx-auto space-y-8">
+
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome to the Desktop-First Environment</h2>
+              <p className="text-slate-600">
+                This is the initial scaffold for the local-first gymnastics video analysis application.
+                From here, we will implement the 3-pass processing pipeline and local storage.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-blue-50/50 rounded-xl p-5 border border-blue-100/50 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+                    <FileVideoIcon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Pass 1: Auto-Clip</h3>
+                </div>
+                <p className="text-sm text-slate-600 ml-11">Immediate motion detection and trimming.</p>
               </div>
-              <div className="border border-green-200 rounded p-4 bg-green-50">
-                <h3 className="font-bold text-green-800">Pass 2: Pose Analysis</h3>
-                <p className="text-sm text-green-600 italic">Background skeletal tracking and COM extraction.</p>
+              <div className="bg-emerald-50/50 rounded-xl p-5 border border-emerald-100/50 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
+                    <ActivityIcon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Pass 2: Pose Analysis</h3>
+                </div>
+                <p className="text-sm text-slate-600 ml-11">Background skeletal tracking and COM extraction.</p>
               </div>
-              <div className="border border-purple-200 rounded p-4 bg-purple-50">
-                <h3 className="font-bold text-purple-800">Pass 3: Smoothing & Metrics</h3>
-                <p className="text-sm text-purple-600 italic">Constraint engine and metric calculations.</p>
+              <div className="bg-purple-50/50 rounded-xl p-5 border border-purple-100/50 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
+                    <CheckCircleIcon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Pass 3: Metrics</h3>
+                </div>
+                <p className="text-sm text-slate-600 ml-11">Constraint engine and metric calculations.</p>
               </div>
             </div>
           </div>
@@ -175,101 +208,153 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <div className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">New Video Analysis</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">New Video Analysis</h2>
+                <p className="text-slate-500 mt-1">Upload an attempt for automated extraction and pose evaluation.</p>
+              </div>
+              <CaptureGuidelines />
+            </div>
+
             <div className="mb-6">
               <CameraCalibration />
             </div>
 
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileUpload}
-                  ref={fileInputRef}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  data-testid="upload-video-input"
-                />
-                <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 pointer-events-none">
-                  Upload Video
-                </button>
+            <div className="relative border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50 transition-colors rounded-2xl p-10 text-center flex flex-col items-center justify-center group mb-8">
+              <input
+                type="file"
+                accept="video/*"
+                onChange={handleFileUpload}
+                ref={fileInputRef}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                data-testid="upload-video-input"
+              />
+              <div className="bg-white p-4 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform">
+                <UploadIcon className="w-8 h-8 text-blue-500" />
               </div>
-
-              <CaptureGuidelines />
+              <h3 className="text-lg font-semibold text-slate-700 mb-1">Drag and drop your video here</h3>
+              <p className="text-sm text-slate-500">or click to browse from your computer</p>
+              <div className="mt-6">
+                <span className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-full font-medium shadow-sm pointer-events-none inline-flex items-center gap-2">
+                  <FileVideoIcon className="w-4 h-4" /> Select Video
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-4">
-              {jobs.map(job => (
-                <div key={job.id} className="border p-4 rounded-lg bg-gray-50 shadow-sm" data-testid="job-item">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-semibold">{job.filename}</span>
-                    <span className="text-sm px-2 py-1 rounded bg-gray-200 font-mono">{job.status}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                    <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style={{ width: `${job.progress}%` }}></div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{job.message}</p>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                Processing Queue {jobs.length > 0 && <span className="bg-blue-100 text-blue-700 text-xs py-0.5 px-2 rounded-full">{jobs.length}</span>}
+              </h3>
 
-                  {job.clips && job.clips.length > 0 && (
-                     <div className="mt-4 border-t pt-2">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Extracted Clips</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {job.clips.map(clip => (
-                                <div key={clip.id} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs flex flex-col gap-1 w-full sm:w-auto" data-testid="extracted-clip">
-                                    <div>
-                                        <span className="font-bold text-blue-800">{clip.category}</span>
-                                        <span className="text-blue-600 ml-2">[{clip.startTime}s - {clip.endTime}s]</span>
-                                    </div>
-                                    {clip.landingMetrics && (
-                                        <div className="mt-1 pt-1 border-t border-blue-100 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-gray-700">
-                                            <span>Impact: {clip.landingMetrics.impactTime?.toFixed(2)}s</span>
-                                            <span>Stabilization: {clip.landingMetrics.timeToStabilization?.toFixed(2)}s</span>
-                                            <span>Steps: {clip.landingMetrics.stepCount}</span>
-                                            <span>Drift: {clip.landingMetrics.lateralDrift?.toFixed(1)}px</span>
-                                            <span>Knee Angle: {clip.landingMetrics.minKneeAngle?.toFixed(1)}°</span>
-                                            <span>Torso Lean: {clip.landingMetrics.torsoLeanAngle?.toFixed(1)}°</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+              <div className="space-y-4">
+                {jobs.map(job => {
+                  const isComplete = job.status === 'completed' || job.status === 'error';
+                  const isError = job.status === 'error';
+
+                  return (
+                    <div key={job.id} className={`border rounded-xl p-5 shadow-sm transition-all ${isComplete ? (isError ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100') : 'bg-white border-slate-200'}`} data-testid="job-item">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          {!isComplete ? (
+                            <Loader2Icon className="w-5 h-5 text-blue-500 animate-spin" />
+                          ) : isError ? (
+                            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600">!</div>
+                          ) : (
+                            <CheckCircleIcon className="w-5 h-5 text-emerald-500" />
+                          )}
+                          <div>
+                            <h4 className="font-semibold text-slate-900">{job.filename}</h4>
+                            <p className="text-sm text-slate-500">{job.message}</p>
+                          </div>
                         </div>
-                     </div>
-                  )}
-                </div>
-              ))}
-              {jobs.length === 0 && (
-                <p className="text-gray-500 italic">No videos currently processing.</p>
-              )}
+                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isComplete ? (isError ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700') : 'bg-blue-100 text-blue-700'}`}>
+                          {job.status}
+                        </span>
+                      </div>
+
+                      {!isComplete && (
+                        <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
+                          <div className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out relative" style={{ width: `${job.progress}%` }}>
+                            <div className="absolute inset-0 bg-white/20 w-full animate-pulse"></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {job.clips && job.clips.length > 0 && (
+                         <div className="mt-5 border-t border-slate-200/60 pt-4">
+                            <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Extracted Clips ({job.clips.length})</h5>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {job.clips.map(clip => (
+                                    <div key={clip.id} className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm hover:border-blue-300 transition-colors" data-testid="extracted-clip">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="font-bold text-slate-800 text-sm">{clip.category}</span>
+                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                              {clip.startTime}s - {clip.endTime}s
+                                            </span>
+                                        </div>
+                                        {clip.landingMetrics && (
+                                            <div className="mt-2 pt-2 border-t border-slate-100 grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-slate-600">
+                                                <div className="flex justify-between"><span>Impact</span><span className="font-medium text-slate-900">{clip.landingMetrics.impactTime?.toFixed(2)}s</span></div>
+                                                <div className="flex justify-between"><span>Stab.</span><span className="font-medium text-slate-900">{clip.landingMetrics.timeToStabilization?.toFixed(2)}s</span></div>
+                                                <div className="flex justify-between"><span>Steps</span><span className="font-medium text-slate-900">{clip.landingMetrics.stepCount}</span></div>
+                                                <div className="flex justify-between"><span>Drift</span><span className="font-medium text-slate-900">{clip.landingMetrics.lateralDrift?.toFixed(1)}px</span></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                         </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {jobs.length === 0 && (
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center bg-slate-50/50">
+                    <ActivityIcon className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-slate-500 font-medium">No videos currently processing.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="border-t pt-6">
-            <h2 className="text-xl font-semibold mb-4">Athletes</h2>
-            <form onSubmit={handleAddAthlete} className="flex gap-2 mb-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Athlete Management</h2>
+            <form onSubmit={handleAddAthlete} className="flex gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
               <input
                 type="text"
                 value={newAthleteName}
                 onChange={e => setNewAthleteName(e.target.value)}
-                placeholder="New Athlete Name"
-                className="border p-2 rounded flex-1"
+                placeholder="Enter new athlete name..."
+                className="border border-slate-300 p-2.5 rounded-lg flex-1 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               />
-              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Athlete</button>
+              <button type="submit" className="bg-slate-900 text-white px-6 py-2.5 rounded-lg hover:bg-slate-800 font-medium shadow-sm transition-colors whitespace-nowrap">
+                Add Athlete
+              </button>
             </form>
-            {athletes.length === 0 ? (
-              <p className="text-gray-500 italic">No athletes found.</p>
-            ) : (
-              <ul className="list-disc pl-5">
-                {athletes.map(a => (
-                  <li key={a.id} className="text-gray-800">{a.name} (Added: {new Date(a.created_at).toLocaleDateString()})</li>
-                ))}
-              </ul>
-            )}
+
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              {athletes.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 bg-slate-50">No athletes found. Add one above to get started.</div>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {athletes.map(a => (
+                    <li key={a.id} className="p-4 hover:bg-slate-50 flex justify-between items-center transition-colors">
+                      <span className="font-medium text-slate-900">{a.name}</span>
+                      <span className="text-sm text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">Added {new Date(a.created_at).toLocaleDateString()}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
+
         </div>
       </main>
-      <footer className="bg-gray-200 text-gray-600 p-4 text-center text-sm">
-        MAG_dev - Local-First Privacy-Compliant Analytics
+      <footer className="bg-slate-900 text-slate-400 p-6 text-center text-sm border-t border-slate-800">
+        <p className="font-medium mb-1">MAG_dev - Gymnastics Analysis Assistant</p>
+        <p className="text-xs opacity-75">Local-First Privacy-Compliant Analytics</p>
       </footer>
     </div>
   )
