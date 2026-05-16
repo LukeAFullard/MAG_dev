@@ -1,7 +1,7 @@
 import { InferenceEngine } from './inference';
 import { AutoClipExtractor, type ExtractedClip } from './utils/autoClip';
 
-export type JobStatus = 'idle' | 'pass1' | 'pass2' | 'pass3' | 'completed' | 'error';
+export type JobStatus = 'idle' | 'pass1' | 'pass2' | 'pass3' | 'completed' | 'error' | 'cancelled';
 
 export interface VideoProcessingJob {
   id: string;
@@ -17,6 +17,7 @@ type JobUpdateCallback = (job: VideoProcessingJob) => void;
 export class PipelineManager {
   private static instance: PipelineManager;
   private jobs: Map<string, VideoProcessingJob> = new Map();
+  private abortControllers: Map<string, AbortController> = new Map();
   private onJobUpdate?: JobUpdateCallback;
 
   private constructor() {}
@@ -72,45 +73,69 @@ export class PipelineManager {
     // Given the architecture, processing the File object directly is fine for Pass 1 & 2.
     // The database saving happens at the end or in a different layer.
 
+    const abortController = new AbortController();
+    this.abortControllers.set(id, abortController);
+
     // Start background processing without awaiting
-    this.processJob(id, file).catch(err => {
-      this.updateJob(id, { status: 'error', message: err.message });
+    this.processJob(id, file, abortController.signal).catch(err => {
+      if (err.name === 'AbortError') {
+        this.updateJob(id, { status: 'cancelled', message: 'Processing Cancelled' });
+      } else {
+        this.updateJob(id, { status: 'error', message: err.message });
+      }
+    }).finally(() => {
+        this.abortControllers.delete(id);
     });
 
     return id;
   }
 
-  private async processJob(jobId: string, file?: File) {
+  public cancelJob(jobId: string) {
+      const abortController = this.abortControllers.get(jobId);
+      if (abortController) {
+          abortController.abort();
+      }
+  }
+
+  private async processJob(jobId: string, file: File | undefined, signal: AbortSignal) {
     try {
       // Pass 1
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       this.updateJob(jobId, { status: 'pass1', progress: 0, message: 'Running Pass 1: Auto-Clip Extraction' });
-      await this.pass1_autoClipExtraction(jobId, file);
+      await this.pass1_autoClipExtraction(jobId, signal, file);
 
       // Pass 2
-    this.updateJob(jobId, { status: 'pass2', progress: 33, message: 'Running Pass 2: Full Pose & Depth Estimation' });
-      await this.pass2_poseEstimation(jobId, file);
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      this.updateJob(jobId, { status: 'pass2', progress: 33, message: 'Running Pass 2: Full Pose & Depth Estimation' });
+      await this.pass2_poseEstimation(jobId, signal, file);
 
       // Pass 3
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       this.updateJob(jobId, { status: 'pass3', progress: 66, message: 'Running Pass 3: Constraint Smoothing & Metrics' });
-      await this.pass3_smoothingAndMetrics(jobId);
+      await this.pass3_smoothingAndMetrics(jobId, signal);
 
       // Completed
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       this.updateJob(jobId, { status: 'completed', progress: 100, message: 'Processing Complete' });
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+         throw error;
+      }
       this.updateJob(jobId, { status: 'error', message: error.message || 'Unknown error during processing' });
     }
   }
 
   // Pass 1: Motion detection + auto-clip extraction (Fast)
-  private async pass1_autoClipExtraction(jobId: string, file?: File): Promise<void> {
+  private async pass1_autoClipExtraction(jobId: string, signal: AbortSignal, file?: File): Promise<void> {
     if (!file) {
         throw new Error("A valid video file is required for processing.");
     }
 
     const extractor = new AutoClipExtractor();
     const clips = await extractor.process(file, (progress) => {
+      if (signal.aborted) return;
       this.updateJob(jobId, { progress: Math.min(33, (progress / 100) * 33) });
-    });
+    }, signal);
 
     if (!clips || clips.length === 0) {
         // Graceful failure: if no motion was found, stop pipeline early.
@@ -121,7 +146,7 @@ export class PipelineManager {
   }
 
   // Pass 2: Full pose estimation per clip (Slow/Background)
-  private async pass2_poseEstimation(jobId: string, file?: File): Promise<void> {
+  private async pass2_poseEstimation(jobId: string, signal: AbortSignal, file?: File): Promise<void> {
     const job = this.jobs.get(jobId);
     if (!job || !job.clips || job.clips.length === 0) {
        return; // Gracefully do nothing if there's no clips
@@ -154,22 +179,27 @@ export class PipelineManager {
     const clipsWithPoses: (ExtractedClip & { poses?: any[], depths?: any[] })[] = [];
 
     for (let i = 0; i < job.clips.length; i++) {
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       const clip = job.clips[i];
       try {
         // We can run pose and depth estimation sequentially or in parallel
         // Running sequentially to avoid memory overload in worker
         const poses = await poseExtractor.extract(file, clip, engine, (clipProgress) => {
+          if (signal.aborted) return;
           const overallProgress = ((i + (clipProgress / 200)) / totalClips) * 100; // Half progress for pose
           this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });
         });
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
         const depths = await depthExtractor.extract(file, clip, engine, (clipProgress) => {
+          if (signal.aborted) return;
           const overallProgress = ((i + 0.5 + (clipProgress / 200)) / totalClips) * 100; // Half progress for depth
           this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });
         });
 
         clipsWithPoses.push({ ...clip, poses, depths });
-      } catch (e) {
+      } catch (e: any) {
+        if (e.name === 'AbortError') throw e;
         console.error(`Failed to extract data for clip ${clip.id}`, e);
         clipsWithPoses.push(clip);
       }
@@ -178,7 +208,7 @@ export class PipelineManager {
   }
 
   // Pass 3: Constraint engine smoothing + metric calculation
-  private async pass3_smoothingAndMetrics(jobId: string): Promise<void> {
+  private async pass3_smoothingAndMetrics(jobId: string, signal: AbortSignal): Promise<void> {
     const job = this.jobs.get(jobId);
     if (!job || !job.clips || job.clips.length === 0) {
       return;
@@ -193,7 +223,9 @@ export class PipelineManager {
     const apparatusConstraints = new ApparatusConstraints();
     const biomechanics = new HumanBiomechanics();
 
-    const updatedClips = job.clips.map(clip => {
+    const updatedClips = [];
+    for (const clip of job.clips) {
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       const updatedClip = { ...clip };
       if (clip.poses && clip.poses.length > 0) {
         // Apply human biomechanical constraints first to ensure base anatomical realism
@@ -213,8 +245,8 @@ export class PipelineManager {
       } else {
         updatedClip.landingMetrics = { category: clip.category };
       }
-      return updatedClip;
-    });
+      updatedClips.push(updatedClip);
+    }
 
     this.updateJob(jobId, { clips: updatedClips, progress: 100 });
   }

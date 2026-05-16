@@ -22,12 +22,24 @@ export class AutoClipExtractor {
   // Chalk & Noise Filter configuration
   private backgroundAlpha = 0.1; // Learning rate for EMA background subtraction
 
-  public async process(file: File, onProgress?: (progress: number) => void): Promise<ExtractedClip[]> {
+  public async process(file: File, onProgress?: (progress: number) => void, signal?: AbortSignal): Promise<ExtractedClip[]> {
     // Phase 1: Extract Audio Peaks for "thwack" detection (Audio-Visual Fusion)
     const audioPeaks = await this.extractAudioPeaks(file);
 
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
+
+      const handleAbort = () => {
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
+          reject(new DOMException('Aborted', 'AbortError'));
+      };
+
+      if (signal) {
+          if (signal.aborted) return handleAbort();
+          signal.addEventListener('abort', handleAbort);
+      }
       const url = URL.createObjectURL(file);
       video.src = url;
       video.muted = true;
@@ -63,6 +75,7 @@ export class AutoClipExtractor {
         let silenceDuration = 0; // Duration of silence since last motion
 
         video.onseeked = () => {
+          if (signal?.aborted) return;
           ctx.drawImage(video, 0, 0, width, height);
           const currentImageData = ctx.getImageData(0, 0, width, height);
           const totalPixels = width * height;
@@ -167,6 +180,26 @@ export class AutoClipExtractor {
         URL.revokeObjectURL(url);
         reject(e);
       };
+
+      // Cleanup listener when done
+      const cleanup = () => {
+          if (signal) {
+              signal.removeEventListener('abort', handleAbort);
+          }
+      };
+
+      // Monkey patch resolve to cleanup
+      const originalResolve = resolve;
+      resolve = (val) => {
+          cleanup();
+          originalResolve(val);
+      };
+
+      const originalReject = reject;
+      reject = (val) => {
+          cleanup();
+          originalReject(val);
+      }
     });
   }
 
