@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadIcon, FileVideoIcon } from './LucideIcons';
 
 interface CaptureVideoProps {
@@ -109,6 +109,13 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
       setMode('upload');
     }
   };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="mb-8">

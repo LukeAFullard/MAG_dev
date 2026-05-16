@@ -218,8 +218,8 @@ const App: React.FC = () => {
 
               <div className="space-y-4">
                 {jobs.map(job => {
-                  const isComplete = job.status === 'completed' || job.status === 'error';
-                  const isError = job.status === 'error';
+                  const isComplete = job.status === 'completed' || job.status === 'error' || job.status === 'cancelled';
+                  const isError = job.status === 'error' || job.status === 'cancelled';
 
                   return (
                     <div key={job.id} className={`border rounded-xl p-5 shadow-sm transition-all ${isComplete ? (isError ? 'bg-red-50/50 border-red-100' : 'bg-emerald-50/50 border-emerald-100') : 'bg-white border-slate-200'}`} data-testid="job-item">
@@ -237,15 +237,31 @@ const App: React.FC = () => {
                             <p className="text-sm text-slate-500">{job.message}</p>
                           </div>
                         </div>
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isComplete ? (isError ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700') : 'bg-blue-100 text-blue-700'}`}>
-                          {job.status}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          {!isComplete && (
+                             <button
+                               onClick={() => PipelineManager.getInstance().cancelJob(job.id)}
+                               className="text-xs font-medium px-3 py-1 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200"
+                             >
+                               Cancel
+                             </button>
+                          )}
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isComplete ? (isError ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700') : 'bg-blue-100 text-blue-700'}`}>
+                            {job.status}
+                          </span>
+                        </div>
                       </div>
 
                       {!isComplete && (
-                        <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
-                          <div className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out relative" style={{ width: `${job.progress}%` }}>
-                            <div className="absolute inset-0 bg-white/20 w-full animate-pulse"></div>
+                        <div className="mb-2">
+                          <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Processing...</span>
+                            <span className="font-medium text-slate-700">{Math.round(job.progress)}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out relative" style={{ width: `${job.progress}%` }}>
+                              <div className="absolute inset-0 bg-white/20 w-full animate-pulse"></div>
+                            </div>
                           </div>
                         </div>
                       )}
