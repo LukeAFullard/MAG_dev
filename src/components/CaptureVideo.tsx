@@ -46,15 +46,23 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
     chunksRef.current = [];
 
     // Choose appropriate mime type
-    let mimeType = 'video/webm;codecs=vp8,opus';
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
-      mimeType = 'video/webm'; // Fallback
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/mp4'; // Safari fallback
-      }
+    // Android Chrome supports webm, Safari iOS supports mp4/webm.
+    // Just using the default works best across devices.
+    let mimeType = '';
+    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+      mimeType = 'video/webm;codecs=vp8,opus';
+    } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+      mimeType = 'video/webm;codecs=vp8';
+    } else if (MediaRecorder.isTypeSupported('video/webm')) {
+      mimeType = 'video/webm';
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      mimeType = 'video/mp4';
     }
 
-    const mediaRecorder = new MediaRecorder(stream, { mimeType });
+    const options = mimeType ? { mimeType } : undefined;
+    const mediaRecorder = new MediaRecorder(stream, options);
+    // If we didn't set it explicitly, grab what the browser decided to use
+    if (!mimeType) mimeType = mediaRecorder.mimeType;
     mediaRecorderRef.current = mediaRecorder;
 
     mediaRecorder.ondataavailable = (e) => {

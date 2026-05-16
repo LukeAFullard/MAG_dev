@@ -24,9 +24,10 @@ interface Attempt {
 
 interface SessionDashboardProps {
   onSelectAttempt?: (attempt: Attempt) => void;
+  refreshTrigger?: number; // Pass a number to trigger a refresh
 }
 
-export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAttempt }) => {
+export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAttempt, refreshTrigger = 0 }) => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [selectedAthleteId, setSelectedAthleteId] = useState<number | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -52,8 +53,15 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
       fetchSessions(selectedAthleteId);
       fetchRecentAttempts(selectedAthleteId);
       fetchAllAttempts(selectedAthleteId);
-      setSelectedSessionId(null);
-      setAttempts([]);
+
+      // If we are refreshing, we might want to keep the selected session
+      if (refreshTrigger === 0) {
+        setSelectedSessionId(null);
+        setAttempts([]);
+      } else if (selectedSessionId) {
+        // Just refresh the attempts if one is selected
+        fetchAttempts(selectedSessionId);
+      }
     } else {
       setSessions([]);
       setRecentAttempts([]);
@@ -61,7 +69,7 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
       setSelectedSessionId(null);
       setAttempts([]);
     }
-  }, [selectedAthleteId]);
+  }, [selectedAthleteId, refreshTrigger]);
 
   const fetchSessions = async (athleteId: number) => {
     const data = await getSessionsForAthlete(athleteId);
