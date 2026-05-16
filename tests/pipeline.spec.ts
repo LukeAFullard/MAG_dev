@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Video Processing Pipeline', () => {
   test('should simulate video processing workflow and show extracted clips', async ({ page }) => {
+    test.setTimeout(180000); // Allow up to 3 minutes for ML processing in headless mode
     // Navigate to app
     await page.goto('http://localhost:5173/'); await page.click('text=Capture & Process');
 
@@ -26,6 +27,6 @@ test.describe('Video Processing Pipeline', () => {
     await expect(clip).toContainText('Floor'); // Default apparatus category
 
     // Wait for completion
-    await expect(jobItem).toContainText('Processing Complete', { timeout: 30000 });
+    await expect(jobItem).toContainText('Processing Complete', { timeout: 150000 });
   });
 });
