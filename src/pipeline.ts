@@ -1,3 +1,4 @@
+import { InferenceEngine } from './inference';
 import { AutoClipExtractor, type ExtractedClip } from './utils/autoClip';
 
 export type JobStatus = 'idle' | 'pass1' | 'pass2' | 'pass3' | 'completed' | 'error';
@@ -129,7 +130,7 @@ export class PipelineManager {
         throw new Error("A valid video file is required for Pass 2 processing.");
     }
 
-    const { InferenceEngine } = await import('./inference');
+    // imported at top to avoid bundle duplication
     const engine = InferenceEngine.getInstance();
 
     // Ensure inference engine is loaded and model is ready
