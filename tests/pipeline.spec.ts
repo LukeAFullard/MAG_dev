@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Video Processing Pipeline', () => {
   test('should simulate video processing workflow and show extracted clips', async ({ page }) => {
     // Navigate to app
-    await page.goto('http://localhost:5173/');
+    await page.goto('http://localhost:5173/'); await page.click('text=Capture & Process');
 
     // Wait for initial render
     await expect(page.locator('h1')).toContainText('MAG_dev');

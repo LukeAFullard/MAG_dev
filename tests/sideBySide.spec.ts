@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Side-by-Side Comparison UI', () => {
     test('should render the side-by-side UI', async ({ page }) => {
-        await page.goto('http://localhost:5173/');
+        await page.goto('http://localhost:5173/'); await page.click('text=Analysis Tools');
 
         const comparisonTitle = page.locator('h2', { hasText: 'Side-by-Side Comparison' });
         await expect(comparisonTitle).toBeVisible();

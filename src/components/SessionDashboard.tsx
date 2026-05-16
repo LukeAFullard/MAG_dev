@@ -38,7 +38,7 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
 
   useEffect(() => {
     // Periodically fetch athletes in case a new one is added in another component
-    const interval = setInterval(fetchAthletes, 2000);
+    const interval = setInterval(fetchAthletes, 5000);
     fetchAthletes(); // Initial fetch
     return () => clearInterval(interval);
   }, []);
