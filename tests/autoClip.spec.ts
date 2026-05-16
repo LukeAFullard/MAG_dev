@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Auto Clip UI Test', () => {
   test('should display extracted clips when a video is uploaded', async ({ page }) => {
     // Navigate to app
-    await page.goto('http://localhost:5173/MAG_dev/');
+    await page.goto('http://localhost:5173/');
 
     // Upload the sample video
     await page.getByTestId('upload-video-input').setInputFiles('public/test_clip.mp4');
@@ -28,7 +28,7 @@ test.describe('Auto Clip UI Test', () => {
     await expect(clips).not.toHaveCount(0);
 
     const firstClip = clips.nth(0);
-    // Since it's a real test clip now, category defaults to 'Attempt'
-    await expect(firstClip).toContainText('Attempt');
+    // Since it's a real test clip now, category defaults to 'Floor'
+    await expect(firstClip).toContainText('Floor');
   });
 });

@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadIcon, FileVideoIcon } from './LucideIcons';
 
 interface CaptureVideoProps {
-  onVideoCaptured: (file: File) => void;
+  onVideoCaptured: (file: File, apparatus: string) => void;
 }
 
 const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
   const [mode, setMode] = useState<'upload' | 'record'>('upload');
+  const [apparatus, setApparatus] = useState<string>('Floor');
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -75,7 +76,7 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
       const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
       const file = new File([blob], `recorded_attempt_${Date.now()}.${extension}`, { type: mimeType });
-      onVideoCaptured(file);
+      onVideoCaptured(file, apparatus);
       chunksRef.current = [];
     };
 
@@ -95,7 +96,7 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      onVideoCaptured(files[0]);
+      onVideoCaptured(files[0], apparatus);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -127,8 +128,26 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
 
   return (
     <div className="mb-8">
-      <div className="flex gap-4 mb-4 justify-center">
-        <button
+      <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-center items-center">
+        <div className="flex gap-2 items-center bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm">
+          <label htmlFor="apparatus-select" className="text-sm font-medium text-slate-600">Apparatus:</label>
+          <select
+            id="apparatus-select"
+            value={apparatus}
+            onChange={(e) => setApparatus(e.target.value)}
+            className="text-sm border-none bg-transparent focus:ring-0 text-slate-900 font-semibold cursor-pointer outline-none"
+          >
+            <option value="Floor">Floor</option>
+            <option value="Pommel Horse">Pommel Horse</option>
+            <option value="Rings">Rings</option>
+            <option value="Vault">Vault</option>
+            <option value="Parallel Bars">Parallel Bars</option>
+            <option value="High Bar">High Bar</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button
           onClick={() => toggleMode('upload')}
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${mode === 'upload' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
@@ -139,7 +158,8 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
           className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${mode === 'record' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           Record Camera
-        </button>
+          </button>
+        </div>
       </div>
 
       {mode === 'upload' ? (

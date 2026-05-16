@@ -113,7 +113,7 @@ const App: React.FC = () => {
     await fetchAthletes();
   };
 
-  const handleVideoCaptured = async (file: File) => {
+  const handleVideoCaptured = async (file: File, apparatus: string) => {
     try {
       // 1. Save original video to OPFS
       const opfsFilename = await saveVideoToOPFS(file);
@@ -121,7 +121,7 @@ const App: React.FC = () => {
 
       // 2. Start the processing pipeline
       const pipeline = PipelineManager.getInstance();
-      pipeline.startJob(opfsFilename, file); // Pass the OPFS filename so it can be tracked
+      pipeline.startJob(opfsFilename, file, apparatus); // Pass the OPFS filename so it can be tracked
     } catch (err) {
       console.error('Failed to save file to OPFS', err);
       alert('Failed to process video file. Ensure your browser supports OPFS.');

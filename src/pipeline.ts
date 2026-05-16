@@ -10,6 +10,7 @@ export interface VideoProcessingJob {
   progress: number;
   message?: string;
   clips?: ExtractedClip[];
+  apparatus?: string;
 }
 
 type JobUpdateCallback = (job: VideoProcessingJob) => void;
@@ -52,14 +53,15 @@ export class PipelineManager {
     return Array.from(this.jobs.values());
   }
 
-  public async startJob(filename: string, file?: File): Promise<string> {
+  public async startJob(filename: string, file?: File, apparatus?: string): Promise<string> {
     const id = `job_${Date.now()}`;
     const newJob: VideoProcessingJob = {
       id,
       filename,
       status: 'idle',
       progress: 0,
-      message: 'Initialized'
+      message: 'Initialized',
+      apparatus
     };
     this.jobs.set(id, newJob);
     if (this.onJobUpdate) {
@@ -99,10 +101,13 @@ export class PipelineManager {
 
   private async processJob(jobId: string, file: File | undefined, signal: AbortSignal) {
     try {
+      const job = this.getJob(jobId);
+      const apparatus = job?.apparatus || 'Attempt';
+
       // Pass 1
       if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       this.updateJob(jobId, { status: 'pass1', progress: 0, message: 'Running Pass 1: Auto-Clip Extraction' });
-      await this.pass1_autoClipExtraction(jobId, signal, file);
+      await this.pass1_autoClipExtraction(jobId, signal, file, apparatus);
 
       // Pass 2
       if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -126,13 +131,13 @@ export class PipelineManager {
   }
 
   // Pass 1: Motion detection + auto-clip extraction (Fast)
-  private async pass1_autoClipExtraction(jobId: string, signal: AbortSignal, file?: File): Promise<void> {
+  private async pass1_autoClipExtraction(jobId: string, signal: AbortSignal, file?: File, apparatus?: string): Promise<void> {
     if (!file) {
         throw new Error("A valid video file is required for processing.");
     }
 
     const extractor = new AutoClipExtractor();
-    const clips = await extractor.process(file, (progress) => {
+    const clips = await extractor.process(file, apparatus, (progress) => {
       if (signal.aborted) return;
       this.updateJob(jobId, { progress: Math.min(33, (progress / 100) * 33) });
     }, signal);
