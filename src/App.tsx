@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { initDb, addAthlete, getAthletes, pruneOldVideos, saveVideoToOPFS, updateAttemptMetrics } from './db';
 import { InferenceEngine } from './inference';
 import { PipelineManager, type VideoProcessingJob } from './pipeline';
@@ -7,7 +7,8 @@ import CameraCalibration from './components/CameraCalibration';
 import SideBySideComparison from './components/SideBySideComparison';
 import SessionDashboard from './components/SessionDashboard';
 import ManualAnnotation from './components/ManualAnnotation';
-import { UploadIcon, ActivityIcon, CheckCircleIcon, FileVideoIcon, Loader2Icon } from './components/LucideIcons';
+import CaptureVideo from './components/CaptureVideo';
+import { ActivityIcon, CheckCircleIcon, Loader2Icon, FileVideoIcon } from './components/LucideIcons';
 
 const App: React.FC = () => {
   const [dbStatus, setDbStatus] = useState<string>('Initializing...');
@@ -17,7 +18,6 @@ const App: React.FC = () => {
   const [isWebGPU, setIsWebGPU] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<VideoProcessingJob[]>([]);
   const [selectedAttemptForAnnotation, setSelectedAttemptForAnnotation] = useState<any>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function setup() {
@@ -72,28 +72,18 @@ const App: React.FC = () => {
     await fetchAthletes();
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
+  const handleVideoCaptured = async (file: File) => {
+    try {
+      // 1. Save original video to OPFS
+      const opfsFilename = await saveVideoToOPFS(file);
+      console.log(`Saved video to OPFS: ${opfsFilename}`);
 
-      try {
-        // 1. Save original video to OPFS
-        const opfsFilename = await saveVideoToOPFS(file);
-        console.log(`Saved video to OPFS: ${opfsFilename}`);
-
-        // 2. Start the processing pipeline
-        const pipeline = PipelineManager.getInstance();
-        pipeline.startJob(opfsFilename, file); // Pass the OPFS filename so it can be tracked
-      } catch (err) {
-        console.error('Failed to save file to OPFS', err);
-        alert('Failed to process video file. Ensure your browser supports OPFS.');
-      }
-
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      // 2. Start the processing pipeline
+      const pipeline = PipelineManager.getInstance();
+      pipeline.startJob(opfsFilename, file); // Pass the OPFS filename so it can be tracked
+    } catch (err) {
+      console.error('Failed to save file to OPFS', err);
+      alert('Failed to process video file. Ensure your browser supports OPFS.');
     }
   };
 
@@ -219,26 +209,7 @@ const App: React.FC = () => {
               <CameraCalibration />
             </div>
 
-            <div className="relative border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50 transition-colors rounded-2xl p-10 text-center flex flex-col items-center justify-center group mb-8">
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleFileUpload}
-                ref={fileInputRef}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                data-testid="upload-video-input"
-              />
-              <div className="bg-white p-4 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                <UploadIcon className="w-8 h-8 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-700 mb-1">Drag and drop your video here</h3>
-              <p className="text-sm text-slate-500">or click to browse from your computer</p>
-              <div className="mt-6">
-                <span className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-full font-medium shadow-sm pointer-events-none inline-flex items-center gap-2">
-                  <FileVideoIcon className="w-4 h-4" /> Select Video
-                </span>
-              </div>
-            </div>
+            <CaptureVideo onVideoCaptured={handleVideoCaptured} />
 
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
