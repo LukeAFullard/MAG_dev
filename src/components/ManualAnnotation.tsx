@@ -17,6 +17,18 @@ interface ManualAnnotationProps {
   onSavePoses?: (poses: PoseData[]) => void;
 }
 
+
+const POSE_CONNECTIONS = [
+  [0, 1], [0, 2], [1, 3], [2, 4], // face
+  [5, 6], // shoulders
+  [5, 7], [7, 9], // left arm
+  [6, 8], [8, 10], // right arm
+  [5, 11], [6, 12], // torso
+  [11, 12], // hips
+  [11, 13], [13, 15], // left leg
+  [12, 14], [14, 16] // right leg
+];
+
 export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, initialPoses = [], onSavePoses }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -157,6 +169,22 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
       ctx.lineTo(currentLine.x2, currentLine.y2);
       ctx.stroke();
     }
+
+
+    // Draw pose skeleton lines
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = mode === 'edit-pose' ? 'rgba(100, 150, 255, 0.8)' : 'rgba(0, 255, 100, 0.8)';
+    POSE_CONNECTIONS.forEach(([i, j]) => {
+      const p1 = currentKeypoints.find(p => p.id === i);
+      const p2 = currentKeypoints.find(p => p.id === j);
+
+      if (p1 && p2 && (p1.score >= 0.3 || mode === 'edit-pose') && (p2.score >= 0.3 || mode === 'edit-pose')) {
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+    });
 
     // Draw pose points
     currentKeypoints.forEach(point => {
