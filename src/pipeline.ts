@@ -138,8 +138,9 @@ export class PipelineManager {
     }, signal);
 
     if (!clips || clips.length === 0) {
-        // Graceful failure: if no motion was found, stop pipeline early.
-        throw new Error("No motion detected. Aborting pipeline.");
+        // We now handle this in autoClip.ts by providing a fallback full-video clip,
+        // but just in case we hit this path, we can log a warning.
+        console.warn("No clips returned from extraction.");
     }
 
     this.updateJob(jobId, { clips, progress: 33 });

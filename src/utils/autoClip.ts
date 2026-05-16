@@ -158,12 +158,23 @@ export class AutoClipExtractor {
               URL.revokeObjectURL(url);
 
               // Convert to ExtractedClip array
-              const clips: ExtractedClip[] = activeSegments.map((seg, idx) => ({
+              let clips: ExtractedClip[] = activeSegments.map((seg, idx) => ({
                   id: `clip_${Date.now()}_${idx}`,
                   startTime: Number(seg.start.toFixed(2)),
                   endTime: Number(Math.min(seg.end, duration).toFixed(2)),
                   category: 'Attempt' // Default category
               }));
+
+              // If no clips were found, we fallback to one clip for the whole video
+              // so that the processing pipeline does not completely fail
+              if (clips.length === 0) {
+                  clips = [{
+                      id: `clip_${Date.now()}_fallback`,
+                      startTime: 0,
+                      endTime: Number(duration.toFixed(2)),
+                      category: 'Attempt'
+                  }];
+              }
 
               resolve(clips);
           }

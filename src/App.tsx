@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { initDb, addAthlete, getAthletes, pruneOldVideos, saveVideoToOPFS, updateAttemptMetrics } from './db';
+import { initDb, addAthlete, getAthletes, pruneOldVideos, saveVideoToOPFS, updateAttemptMetrics, addSession, addAttempt, getSessionsForAthlete } from './db';
 import { InferenceEngine } from './inference';
 import { PipelineManager, type VideoProcessingJob } from './pipeline';
 import CaptureGuidelines from './components/CaptureGuidelines';
@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [isWebGPU, setIsWebGPU] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<VideoProcessingJob[]>([]);
   const [selectedAttemptForAnnotation, setSelectedAttemptForAnnotation] = useState<any>(null);
+  const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
 
   useEffect(() => {
     async function setup() {
@@ -43,7 +44,7 @@ const App: React.FC = () => {
 
       // Setup Pipeline Manager
       const pipeline = PipelineManager.getInstance();
-      pipeline.setOnJobUpdate((updatedJob) => {
+      pipeline.setOnJobUpdate(async (updatedJob) => {
         setJobs(prevJobs => {
           const index = prevJobs.findIndex(j => j.id === updatedJob.id);
           if (index >= 0) {
@@ -53,6 +54,46 @@ const App: React.FC = () => {
           }
           return [...prevJobs, updatedJob];
         });
+
+        // If the job is completed successfully, save the first clip's data as an attempt
+        // We need an athlete to save against. For this MVP, we will save to the first athlete,
+        // or a default "Unknown" athlete if none exist.
+        if (updatedJob.status === 'completed' && updatedJob.clips && updatedJob.clips.length > 0) {
+          try {
+            let athleteList = await getAthletes();
+            let athleteId;
+            if (athleteList.length === 0) {
+              const newAthlete = await addAthlete('Default Athlete');
+              athleteId = newAthlete[0].id;
+            } else {
+              athleteId = athleteList[0].id;
+            }
+
+            let sessions = await getSessionsForAthlete(athleteId);
+            let sessionId;
+            if (sessions.length === 0) {
+              const newSession = await addSession(athleteId, 'Auto-generated session');
+              sessionId = newSession[0].id;
+            } else {
+              sessionId = sessions[0].id;
+            }
+
+            // Save the clips data
+            for (const clip of updatedJob.clips) {
+              const metrics = {
+                  ...clip.landingMetrics,
+                  poses: clip.poses || []
+              };
+              await addAttempt(sessionId, updatedJob.filename, JSON.stringify(metrics));
+            }
+
+            // Trigger a dashboard refresh
+            setDashboardRefreshTrigger(prev => prev + 1);
+            console.log("Saved processed job to database successfully.");
+          } catch (e) {
+            console.error("Failed to save completed job to db", e);
+          }
+        }
       });
       setJobs(pipeline.getAllJobs());
     }
@@ -176,7 +217,10 @@ const App: React.FC = () => {
           </div>
 
           <div className="mb-8">
-            <SessionDashboard onSelectAttempt={(attempt) => setSelectedAttemptForAnnotation(attempt)} />
+            <SessionDashboard
+              onSelectAttempt={(attempt) => setSelectedAttemptForAnnotation(attempt)}
+              refreshTrigger={dashboardRefreshTrigger}
+            />
           </div>
 
           <SideBySideComparison />

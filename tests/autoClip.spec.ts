@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Auto Clip UI Test', () => {
   test('should display extracted clips when a video is uploaded', async ({ page }) => {
     // Navigate to app
-    await page.goto('http://localhost:5173/');
+    await page.goto('http://localhost:5173/MAG_dev/');
 
     // Upload the sample video
     await page.getByTestId('upload-video-input').setInputFiles('public/test_clip.mp4');
