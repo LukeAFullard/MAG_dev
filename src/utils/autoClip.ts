@@ -24,7 +24,9 @@ export class AutoClipExtractor {
 
   public async process(file: File, apparatus: string = 'Attempt', onProgress?: (progress: number) => void, signal?: AbortSignal): Promise<ExtractedClip[]> {
     // Phase 1: Extract Audio Peaks for "thwack" detection (Audio-Visual Fusion)
-    const audioPeaks = await this.extractAudioPeaks(file);
+    // iOS Safari has a bug where decodeAudioData fails or crashes on MediaRecorder output.
+    // Skip audio extraction for recorded files as a safety measure.
+    const audioPeaks = file.name.startsWith('recorded_attempt_') ? [] : await this.extractAudioPeaks(file);
 
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
@@ -50,7 +52,9 @@ export class AutoClipExtractor {
         if (!isFinite(duration) || duration === 0) {
             // Android MediaRecorder often produces WebM files without duration metadata.
             // In these cases, we must seek to a large number to force the browser to compute it.
-            video.currentTime = Number.MAX_SAFE_INTEGER;
+            // Number.MAX_SAFE_INTEGER can cause an assertion failure/crash in WebKit on iOS.
+            // 10000 (10000 seconds = ~2.7 hours) is a safe large value to trigger duration calculation.
+            video.currentTime = 10000;
             video.ondurationchange = () => {
                 video.ondurationchange = null;
                 duration = video.duration;
@@ -65,7 +69,9 @@ export class AutoClipExtractor {
 
       const startProcessing = (duration: number) => {
         const width = 320; // Downscale for faster processing
-        const height = (video.videoHeight / video.videoWidth) * width;
+        const vidW = video.videoWidth || 320;
+        const vidH = video.videoHeight || 240;
+        const height = Math.floor((vidH / vidW) * width) || 240;
 
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -237,6 +243,8 @@ export class AutoClipExtractor {
   private async extractAudioPeaks(file: File): Promise<number[]> {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // On some mobile devices, empty or very small files crash the audio context
+      if (file.size < 1000) return [];
       const arrayBuffer = await file.arrayBuffer();
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 

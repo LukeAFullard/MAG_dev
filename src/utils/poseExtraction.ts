@@ -26,8 +26,10 @@ export class PoseExtractor {
 
         // Target width/height for pose estimation to save memory
         const targetWidth = 640;
-        const scale = targetWidth / video.videoWidth;
-        const targetHeight = Math.floor(video.videoHeight * scale);
+        const vidW = video.videoWidth || 640;
+        const vidH = video.videoHeight || 480;
+        const scale = targetWidth / vidW;
+        const targetHeight = Math.floor(vidH * scale) || 480;
 
         const canvas = document.createElement('canvas');
         canvas.width = targetWidth;
