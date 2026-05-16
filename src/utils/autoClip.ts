@@ -22,7 +22,7 @@ export class AutoClipExtractor {
   // Chalk & Noise Filter configuration
   private backgroundAlpha = 0.1; // Learning rate for EMA background subtraction
 
-  public async process(file: File, onProgress?: (progress: number) => void, signal?: AbortSignal): Promise<ExtractedClip[]> {
+  public async process(file: File, apparatus: string = 'Attempt', onProgress?: (progress: number) => void, signal?: AbortSignal): Promise<ExtractedClip[]> {
     // Phase 1: Extract Audio Peaks for "thwack" detection (Audio-Visual Fusion)
     const audioPeaks = await this.extractAudioPeaks(file);
 
@@ -179,7 +179,7 @@ export class AutoClipExtractor {
                   id: `clip_${Date.now()}_${idx}`,
                   startTime: Number(seg.start.toFixed(2)),
                   endTime: Number(Math.min(seg.end, duration).toFixed(2)),
-                  category: 'Attempt' // Default category
+                  category: apparatus
               }));
 
               // If no clips were found, we fallback to one clip for the whole video
@@ -189,7 +189,7 @@ export class AutoClipExtractor {
                       id: `clip_${Date.now()}_fallback`,
                       startTime: 0,
                       endTime: Number(duration.toFixed(2)),
-                      category: 'Attempt'
+                      category: apparatus
                   }];
               }
 

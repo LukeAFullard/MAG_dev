@@ -23,7 +23,7 @@ test.describe('Video Processing Pipeline', () => {
     // Verify extracted clips are displayed (it processes a real video now)
     const clip = page.getByTestId('extracted-clip').first();
     await expect(clip).toBeVisible();
-    await expect(clip).toContainText('Attempt'); // Default category
+    await expect(clip).toContainText('Floor'); // Default apparatus category
 
     // Wait for completion
     await expect(jobItem).toContainText('Processing Complete', { timeout: 30000 });
