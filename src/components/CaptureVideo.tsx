@@ -8,6 +8,16 @@ interface CaptureVideoProps {
 const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
   const [mode, setMode] = useState<'upload' | 'record'>('upload');
   const [apparatus, setApparatus] = useState<string>('Floor');
+  const [customSkills, setCustomSkills] = useState<string[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('customSkills');
+    if (saved) {
+      try {
+        setCustomSkills(JSON.parse(saved));
+      } catch { /* ignore */ }
+    }
+  }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -76,6 +86,7 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
       const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
       const file = new File([blob], `recorded_attempt_${Date.now()}.${extension}`, { type: mimeType });
+      saveCustomSkill(apparatus);
       onVideoCaptured(file, apparatus);
       chunksRef.current = [];
     };
@@ -93,9 +104,19 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
     }
   };
 
+  const saveCustomSkill = (skill: string) => {
+    const defaultSkills = ["Floor", "Pommel Horse", "Rings", "Vault", "Parallel Bars", "High Bar", "Unknown"];
+    if (skill && !defaultSkills.includes(skill) && !customSkills.includes(skill)) {
+      const updated = [...customSkills, skill];
+      setCustomSkills(updated);
+      localStorage.setItem('customSkills', JSON.stringify(updated));
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
+      saveCustomSkill(apparatus);
       onVideoCaptured(files[0], apparatus);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -130,21 +151,28 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
     <div className="mb-8">
       <div className="flex flex-col sm:flex-row gap-4 mb-4 justify-center items-center">
         <div className="flex gap-2 items-center bg-white border border-slate-200 rounded-full px-4 py-1.5 shadow-sm">
-          <label htmlFor="apparatus-select" className="text-sm font-medium text-slate-600">Apparatus:</label>
-          <select
+          <label htmlFor="apparatus-select" className="text-sm font-medium text-slate-600">Apparatus/Skill:</label>
+          <input
             id="apparatus-select"
+            type="text"
+            list="apparatus-options"
             value={apparatus}
             onChange={(e) => setApparatus(e.target.value)}
-            className="text-sm border-none bg-transparent focus:ring-0 text-slate-900 font-semibold cursor-pointer outline-none"
-          >
-            <option value="Floor">Floor</option>
-            <option value="Pommel Horse">Pommel Horse</option>
-            <option value="Rings">Rings</option>
-            <option value="Vault">Vault</option>
-            <option value="Parallel Bars">Parallel Bars</option>
-            <option value="High Bar">High Bar</option>
-            <option value="Unknown">Unknown</option>
-          </select>
+            className="text-sm border-none bg-transparent focus:ring-0 text-slate-900 font-semibold outline-none w-32"
+            placeholder="E.g. Double Tuck"
+          />
+          <datalist id="apparatus-options">
+            <option value="Floor" />
+            <option value="Pommel Horse" />
+            <option value="Rings" />
+            <option value="Vault" />
+            <option value="Parallel Bars" />
+            <option value="High Bar" />
+            <option value="Unknown" />
+            {customSkills.map(skill => (
+              <option key={skill} value={skill} />
+            ))}
+          </datalist>
         </div>
         <div className="flex gap-2">
           <button

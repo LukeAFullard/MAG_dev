@@ -3,6 +3,10 @@ import { SQLocal } from 'sqlocal';
 const { sql } = new SQLocal('mag-app.sqlite3');
 
 export async function initDb() {
+  // Wait for the OPFS file to be flushed when writing
+  await sql`PRAGMA synchronous = FULL;`;
+  await sql`PRAGMA journal_mode = DELETE;`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS athletes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
