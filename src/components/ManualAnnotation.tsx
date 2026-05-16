@@ -41,7 +41,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
   const [currentKeypoints, setCurrentKeypoints] = useState<{ id: number, x: number, y: number, score: number }[]>([]);
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
 
   const renderLoop = () => {
     drawCanvas();
