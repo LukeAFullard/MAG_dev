@@ -46,7 +46,24 @@ export class AutoClipExtractor {
       video.playsInline = true;
 
       video.onloadedmetadata = () => {
-        const duration = video.duration;
+        let duration = video.duration;
+        if (!isFinite(duration) || duration === 0) {
+            // Android MediaRecorder often produces WebM files without duration metadata.
+            // In these cases, we must seek to a large number to force the browser to compute it.
+            video.currentTime = Number.MAX_SAFE_INTEGER;
+            video.ondurationchange = () => {
+                video.ondurationchange = null;
+                duration = video.duration;
+                video.currentTime = 0; // reset
+                startProcessing(duration);
+            };
+            return;
+        }
+
+        startProcessing(duration);
+      };
+
+      const startProcessing = (duration: number) => {
         const width = 320; // Downscale for faster processing
         const height = (video.videoHeight / video.videoWidth) * width;
 
