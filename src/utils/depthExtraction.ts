@@ -30,8 +30,10 @@ export class DepthExtractor {
         // Target width/height for depth estimation to save memory.
         // Often depth models accept 256x256 or similar, we scale it down to keep it fast
         const targetWidth = 256;
-        const scale = targetWidth / video.videoWidth;
-        const targetHeight = Math.floor(video.videoHeight * scale);
+        const vidW = video.videoWidth || 256;
+        const vidH = video.videoHeight || 256;
+        const scale = targetWidth / vidW;
+        const targetHeight = Math.floor(vidH * scale) || 256;
 
         const canvas = document.createElement('canvas');
         canvas.width = targetWidth;
