@@ -272,7 +272,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     <div className="border p-4 rounded bg-white shadow-sm" data-testid="manual-annotation">
       <h3 className="font-semibold text-gray-700 mb-4">Manual Annotation Tools</h3>
 
-      <div className="relative inline-block border bg-black rounded overflow-hidden">
+      <div className="relative inline-block border bg-black rounded overflow-hidden w-[640px] h-[360px]">
         {/* We hide the video and render it to the canvas for frame accurate extraction */}
         {videoUrl && (
           <video
