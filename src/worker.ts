@@ -120,7 +120,12 @@ self.addEventListener('message', async (event) => {
          // input could be an ImageData or ImageBitmap
          let results;
          if (input instanceof ImageBitmap) {
-             results = await detector.detectFromBitmap(input);
+             const canvas = new OffscreenCanvas(input.width, input.height);
+             const ctx = canvas.getContext('2d');
+             if (!ctx) throw new Error("Could not get 2d context for pose detection");
+             ctx.drawImage(input, 0, 0);
+             const imageData = ctx.getImageData(0, 0, input.width, input.height);
+             results = await detector.detect(new Uint8Array(imageData.data.buffer), input.width, input.height);
          } else if (input instanceof ImageData) {
              results = await detector.detect(new Uint8Array(input.data.buffer), input.width, input.height);
          } else {
