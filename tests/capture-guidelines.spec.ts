@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('capture guidelines appear when button is clicked', async ({ page }) => {
-  await page.goto('http://localhost:5173/');
+  await page.goto('http://localhost:5173/'); await page.click('text=Capture & Process');
 
   // Check if button is visible
   const openButton = page.locator('[data-testid="capture-guidelines-btn"]');

@@ -41,6 +41,26 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
   const [currentKeypoints, setCurrentKeypoints] = useState<{ id: number, x: number, y: number, score: number }[]>([]);
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 
+  const requestRef = useRef<number>();
+
+  const renderLoop = () => {
+    drawCanvas();
+    requestRef.current = requestAnimationFrame(renderLoop);
+  };
+
+  useEffect(() => {
+    if (isPlaying) {
+      requestRef.current = requestAnimationFrame(renderLoop);
+    } else {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      drawCanvas();
+    }
+    return () => {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, [isPlaying, lines, currentLine, currentKeypoints, mode]);
+
+
   useEffect(() => {
     setPoses(initialPoses);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,10 +126,6 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     }
   }, [videoUrl]);
 
-  useEffect(() => {
-    drawCanvas();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines, currentLine, currentKeypoints, mode]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -262,7 +278,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
           <video
             ref={videoRef}
             src={videoUrl}
-            className="hidden"
+            className="opacity-0 absolute pointer-events-none w-[1px] h-[1px]"
             playsInline
             data-testid="annotation-video"
             onSeeked={() => drawCanvas()}

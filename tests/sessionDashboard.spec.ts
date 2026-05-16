@@ -2,20 +2,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Session Analytics Dashboard', () => {
   test('renders dashboard and allows interacting with athlete selection', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/'); await page.click('text=Athletes');
 
     // Wait for DB to be connected
     await expect(page.getByText('DB Status:')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText('Connected')).toBeVisible({ timeout: 10000 });
 
     // Check if Dashboard header is visible
-    await expect(page.getByText('Session Analytics Dashboard')).toBeVisible();
+    await page.click('text=Dashboard'); await expect(page.getByText('Session Analytics Dashboard')).toBeVisible(); await page.click('text=Athletes');
 
     // The name to use for this run to avoid conflicts
     const athleteName = `Dashboard Test Athlete ${Date.now()}`;
 
     await page.getByPlaceholder('Enter new athlete name...').fill(athleteName);
-    await page.getByRole('button', { name: 'Add Athlete' }).click();
+    await page.getByRole('button', { name: 'Add Athlete' }).click(); await page.click('text=Dashboard');
 
     // Verify athlete is in the select dropdown
     const select = page.getByTestId('athlete-select');

@@ -5,7 +5,7 @@ test.use({
 });
 
 test('db test', async ({ page }) => {
-  await page.goto('http://localhost:5173/');
+  await page.goto('http://localhost:5173/'); await page.click('text=Athletes');
 
   // Wait for the DB to be connected
   await expect(page.getByText('Connected')).toBeVisible({ timeout: 10000 });
