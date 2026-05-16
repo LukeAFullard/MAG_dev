@@ -108,6 +108,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
 
   useEffect(() => {
     drawCanvas();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, currentLine, currentKeypoints, mode]);
 
   const drawCanvas = () => {

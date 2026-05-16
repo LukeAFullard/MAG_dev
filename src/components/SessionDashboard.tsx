@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAthletes, getSessionsForAthlete, getAttemptsForSession, getRecentAttemptsForAthlete, getAllAttemptsForAthlete } from '../db';
+import { getAthletes, getSessionsForAthlete, getAttemptsForSession, getRecentAttemptsForAthlete, getAllAttemptsForAthlete, getVideoFromOPFS } from '../db';
 import { ChartBarIcon, LayoutDashboardIcon, ActivityIcon, PlayIcon, AlertCircleIcon, SettingsIcon } from './LucideIcons';
 
 interface Athlete {
@@ -497,12 +497,10 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
                                       if (onSelectAttempt) {
                                         // If video_path is an OPFS filename, we need to load it
                                         if (attempt.video_path && attempt.video_path.startsWith('video_')) {
-                                            import('../db').then(({ getVideoFromOPFS }) => {
-                                                getVideoFromOPFS(attempt.video_path!).then(url => {
+                                            getVideoFromOPFS(attempt.video_path!).then(url => {
                                                     onSelectAttempt({ ...attempt, video_path: url });
                                                     document.querySelector('[data-testid="manual-annotation"]')?.scrollIntoView({ behavior: 'smooth' });
                                                 });
-                                            });
                                         } else {
                                             // Plain URL data (e.g. from tests)
                                             onSelectAttempt(attempt);

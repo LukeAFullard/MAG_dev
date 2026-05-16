@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { initDb, addAthlete, getAthletes, pruneOldVideos } from './db';
+import { initDb, addAthlete, getAthletes, pruneOldVideos, saveVideoToOPFS, updateAttemptMetrics } from './db';
 import { InferenceEngine } from './inference';
 import { PipelineManager, type VideoProcessingJob } from './pipeline';
 import CaptureGuidelines from './components/CaptureGuidelines';
@@ -79,7 +79,6 @@ const App: React.FC = () => {
 
       try {
         // 1. Save original video to OPFS
-        const { saveVideoToOPFS } = await import('./db');
         const opfsFilename = await saveVideoToOPFS(file);
         console.log(`Saved video to OPFS: ${opfsFilename}`);
 
@@ -102,7 +101,6 @@ const App: React.FC = () => {
     if (!selectedAttemptForAnnotation) return;
 
     try {
-      const { updateAttemptMetrics } = await import('./db');
       const metrics = JSON.parse(selectedAttemptForAnnotation.metrics_json || '{}');
       metrics.poses = poses; // Update the poses in the JSON
       const updatedMetricsJson = JSON.stringify(metrics);
