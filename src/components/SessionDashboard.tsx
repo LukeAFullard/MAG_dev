@@ -482,6 +482,7 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
                             <th className="px-5 py-3 text-left font-semibold">Time</th>
+                            <th className="px-5 py-3 text-left font-semibold">Apparatus/Skill</th>
                             <th className="px-5 py-3 text-left font-semibold">Metrics Preview</th>
                             <th className="px-5 py-3 text-right font-semibold">Action</th>
                           </tr>
@@ -489,14 +490,19 @@ export const SessionDashboard: React.FC<SessionDashboardProps> = ({ onSelectAtte
                         <tbody className="divide-y divide-slate-100 bg-white">
                           {attempts.map(attempt => {
                             let metricsPreview = 'None';
+                            let apparatusName = 'Unknown';
                             try {
                                 const metrics = JSON.parse(attempt.metrics_json);
                                 metricsPreview = `Impact: ${metrics.impactTime?.toFixed(2)}s, Steps: ${metrics.stepCount}`;
+                                if (metrics.category) {
+                                    apparatusName = metrics.category;
+                                }
                             } catch { /* ignore */ }
 
                             return (
                               <tr key={attempt.id} className="hover:bg-slate-50 transition-colors group">
                                 <td className="px-5 py-3.5 text-slate-600 font-medium">{new Date(attempt.created_at).toLocaleTimeString()}</td>
+                                <td className="px-5 py-3.5 text-slate-600">{apparatusName}</td>
                                 <td className="px-5 py-3.5 text-slate-500">{metricsPreview}</td>
                                 <td className="px-5 py-3.5 text-right">
                                   <button
