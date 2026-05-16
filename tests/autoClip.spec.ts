@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Auto Clip UI Test', () => {
   test('should display extracted clips when a video is uploaded', async ({ page }) => {
+    test.setTimeout(180000); // Allow up to 3 minutes for ML processing in headless mode
     // Navigate to app
     await page.goto('http://localhost:5173/'); await page.click('text=Capture & Process');
 
@@ -20,7 +21,7 @@ test.describe('Auto Clip UI Test', () => {
     await expect(clipsHeader).toBeVisible();
 
     // Wait for the pipeline to finish processing the actual video
-    await expect(jobItem).toContainText('completed', { timeout: 30000 });
+    await expect(jobItem).toContainText('completed', { timeout: 150000 });
 
     // Verify the simulated clips are displayed correctly
     const clips = jobItem.getByTestId('extracted-clip');

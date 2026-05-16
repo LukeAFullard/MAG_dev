@@ -12,7 +12,7 @@ export default defineConfig({
     format: 'es'
   },
   optimizeDeps: {
-    exclude: ['@huggingface/transformers', 'sqlocal']
+    exclude: ['@huggingface/transformers', 'sqlocal', 'rtmlib-ts']
   },
   preview: {
     headers: {
