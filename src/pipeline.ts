@@ -192,13 +192,34 @@ export class PipelineManager {
         });
         if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-        const depths = await depthExtractor.extract(file, clip, engine, (clipProgress) => {
+        // Dynamically trim the clip boundaries based on where the AI actually detected a person.
+        // This handles cases where motion detection in Pass 1 was too generous or fell back to the whole video.
+        let trimmedStartTime = clip.startTime;
+        let trimmedEndTime = clip.endTime;
+
+        if (poses && poses.length > 0) {
+            // Find the first and last pose where keypoints were actually detected (not empty)
+            const validPoses = poses.filter(p => p.keypoints && p.keypoints.length > 0);
+            if (validPoses.length > 0) {
+                // Add a small 0.5s buffer around the detected person
+                trimmedStartTime = Math.max(clip.startTime, validPoses[0].time - 0.5);
+                trimmedEndTime = Math.min(clip.endTime, validPoses[validPoses.length - 1].time + 0.5);
+            }
+        }
+
+        const trimmedClip = {
+            ...clip,
+            startTime: Number(trimmedStartTime.toFixed(2)),
+            endTime: Number(trimmedEndTime.toFixed(2))
+        };
+
+        const depths = await depthExtractor.extract(file, trimmedClip, engine, (clipProgress) => {
           if (signal.aborted) return;
           const overallProgress = ((i + 0.5 + (clipProgress / 200)) / totalClips) * 100; // Half progress for depth
           this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });
         });
 
-        clipsWithPoses.push({ ...clip, poses, depths });
+        clipsWithPoses.push({ ...trimmedClip, poses, depths });
       } catch (e: any) {
         if (e.name === 'AbortError') throw e;
         console.error(`Failed to extract data for clip ${clip.id}`, e);
