@@ -36,6 +36,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [videoDimensions, setVideoDimensions] = useState({ width: 640, height: 360 });
 
   // Drawing state
   const [mode, setMode] = useState<'view' | 'draw' | 'edit-pose'>('view');
@@ -70,6 +71,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, lines, currentLine, currentKeypoints, mode]);
 
 
@@ -112,7 +114,12 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     if (!video) return;
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleLoadedMetadata = () => setDuration(video.duration);
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      if (video.videoWidth && video.videoHeight) {
+        setVideoDimensions({ width: video.videoWidth, height: video.videoHeight });
+      }
+    };
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
@@ -171,6 +178,9 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     }
 
 
+
+    const drawScale = canvas.width / 640; // Pose coordinates are based on a 640 extraction width
+
     // Draw pose skeleton lines
     ctx.lineWidth = 2;
     ctx.strokeStyle = mode === 'edit-pose' ? 'rgba(100, 150, 255, 0.8)' : 'rgba(0, 255, 100, 0.8)';
@@ -180,8 +190,8 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
 
       if (p1 && p2 && (p1.score >= 0.3 || mode === 'edit-pose') && (p2.score >= 0.3 || mode === 'edit-pose')) {
         ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
+        ctx.moveTo(p1.x * drawScale, p1.y * drawScale);
+        ctx.lineTo(p2.x * drawScale, p2.y * drawScale);
         ctx.stroke();
       }
     });
@@ -190,7 +200,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     currentKeypoints.forEach(point => {
       if (point.score < 0.3 && mode !== 'edit-pose') return; // Hide low confidence points unless editing
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+      ctx.arc(point.x * drawScale, point.y * drawScale, 4, 0, 2 * Math.PI);
       ctx.fillStyle = mode === 'edit-pose' ? 'rgba(0, 0, 255, 0.8)' : 'rgba(0, 255, 0, 0.8)';
       ctx.fill();
 
@@ -225,14 +235,37 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+
+    // Calculate scale factors due to object-contain
+    // We assume the canvas keeps its original aspect ratio inside the rect
+    const canvasRatio = canvas.width / canvas.height;
+    const rectRatio = rect.width / rect.height;
+
+    let drawWidth = rect.width;
+    let drawHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (canvasRatio > rectRatio) {
+        drawHeight = rect.width / canvasRatio;
+        offsetY = (rect.height - drawHeight) / 2;
+    } else {
+        drawWidth = rect.height * canvasRatio;
+        offsetX = (rect.width - drawWidth) / 2;
+    }
+
+    const scaleX = canvas.width / drawWidth;
+    const scaleY = canvas.height / drawHeight;
+
+    const x = (e.clientX - rect.left - offsetX) * scaleX;
+    const y = (e.clientY - rect.top - offsetY) * scaleY;
 
     if (mode === 'draw') {
       setIsDrawing(true);
       setCurrentLine({ x1: x, y1: y, x2: x, y2: y });
     } else if (mode === 'edit-pose') {
-      const point = currentKeypoints.find(p => Math.hypot(p.x - x, p.y - y) < 15);
+      const drawScale = canvas.width / 640;
+      const point = currentKeypoints.find(p => Math.hypot(p.x * drawScale - x, p.y * drawScale - y) < 15);
       if (point) {
         setDraggingPoint(point.id);
       }
@@ -243,13 +276,36 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+
+    // Calculate scale factors due to object-contain
+    // We assume the canvas keeps its original aspect ratio inside the rect
+    const canvasRatio = canvas.width / canvas.height;
+    const rectRatio = rect.width / rect.height;
+
+    let drawWidth = rect.width;
+    let drawHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (canvasRatio > rectRatio) {
+        drawHeight = rect.width / canvasRatio;
+        offsetY = (rect.height - drawHeight) / 2;
+    } else {
+        drawWidth = rect.height * canvasRatio;
+        offsetX = (rect.width - drawWidth) / 2;
+    }
+
+    const scaleX = canvas.width / drawWidth;
+    const scaleY = canvas.height / drawHeight;
+
+    const x = (e.clientX - rect.left - offsetX) * scaleX;
+    const y = (e.clientY - rect.top - offsetY) * scaleY;
 
     if (mode === 'draw' && isDrawing && currentLine) {
       setCurrentLine({ ...currentLine, x2: x, y2: y });
     } else if (mode === 'edit-pose' && draggingPoint !== null) {
-      setCurrentKeypoints(prev => prev.map(p => p.id === draggingPoint ? { ...p, x, y } : p));
+      const drawScale = canvas.width / 640;
+      setCurrentKeypoints(prev => prev.map(p => p.id === draggingPoint ? { ...p, x: x / drawScale, y: y / drawScale } : p));
     }
   };
 
@@ -300,7 +356,7 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
     <div className="border p-4 rounded bg-white shadow-sm" data-testid="manual-annotation">
       <h3 className="font-semibold text-gray-700 mb-4">Manual Annotation Tools</h3>
 
-      <div className="relative inline-block border bg-black rounded overflow-hidden w-[640px] h-[360px]">
+      <div className="relative border bg-black rounded overflow-hidden w-full max-w-3xl mx-auto" style={{ aspectRatio: videoDimensions.width / videoDimensions.height, maxHeight: '80vh' }}>
         {/* We hide the video and render it to the canvas for frame accurate extraction */}
         {videoUrl && (
           <video
@@ -321,9 +377,9 @@ export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, in
 
         <canvas
           ref={canvasRef}
-          width={640}
-          height={360}
-          className="absolute top-0 left-0 cursor-crosshair"
+          width={videoDimensions.width}
+          height={videoDimensions.height}
+          className="absolute top-0 left-0 w-full h-full object-contain cursor-crosshair"
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
