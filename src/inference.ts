@@ -102,7 +102,7 @@ export class InferenceEngine {
           poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-l.onnx";
         }
 
-        const device = this.isWebGPUSupported ? "webgpu" : "wasm";
+        const device = (typeof navigator !== 'undefined' && (navigator as any).gpu) ? "webgpu" : "wasm";
         const detectorConfig: any = {
           backend: device,
           detModel: "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx",
