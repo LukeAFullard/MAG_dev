@@ -81,6 +81,8 @@ export class PoseExtractor {
             await engine.loadModel('pose-estimation', modelToUse);
             const results = await engine.runInference('pose-estimation', modelToUse, imageBitmap, [imageBitmap]);
 
+            console.log(`[PoseExtraction] Time: ${currentTime.toFixed(2)} - Raw results length: ${results ? results.length : 0}`, results);
+
             if (results && results.length > 0) {
               // Process all detected persons to find their COMs
               const personsWithCOM = results.map((person: any) => {

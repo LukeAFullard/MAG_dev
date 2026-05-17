@@ -105,6 +105,10 @@ export class InferenceEngine {
           backend: device,
           detModel: "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx",
           poseModel: poseModelUrl,
+          detInputSize: [416, 416],
+          poseInputSize: [384, 288],
+          detConfidence: 0.5,
+          poseConfidence: 0.3,
         };
         const detector = new PoseDetector(detectorConfig);
         await detector.init();
