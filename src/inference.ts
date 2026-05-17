@@ -92,14 +92,12 @@ export class InferenceEngine {
 
         let poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
 
-        // We can use the RTMW models (whole body) which offer high accuracy.
-        // Or Bukuroo's RTMPose ONNX models
         if (model === "rtmpose-s") {
-          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-s.onnx";
+          poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
         } else if (model === "rtmpose-m") {
-          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-m.onnx";
+          poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
         } else if (model === "rtmpose-l") {
-          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-l.onnx";
+          poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
         }
 
         const device = (typeof navigator !== 'undefined' && (navigator as any).gpu) ? "webgpu" : "wasm";
@@ -141,24 +139,12 @@ export class InferenceEngine {
           input.close();
           return [];
         }
-        // rtmlib-ts detectFromBitmap is available in newer versions, but if not we can use detectFromCanvas or detect(imageData).
-        // Let's use detect(imageData) as it is most reliable and was used before.
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx)
-          throw new Error("Could not get 2d context for pose detection");
-        ctx.drawImage(input, 0, 0);
-        input.close(); // Clean up ImageBitmap to prevent memory leaks
-        const imageData = ctx.getImageData(0, 0, width, height);
 
-        // PoseDetector returns Array of Person objects: { bbox, keypoints: Keypoint[], scores }
-        results = await detector.detect(
-          new Uint8Array(imageData.data.buffer),
-          width,
-          height,
-        );
+        results = await detector.detectFromBitmap(input);
+
+        input.close(); // Clean up ImageBitmap to prevent memory leaks
+      } else if (input instanceof HTMLCanvasElement) {
+        results = await detector.detectFromCanvas(input);
       } else if (input instanceof ImageData) {
         results = await detector.detect(
           new Uint8Array(input.data.buffer),
