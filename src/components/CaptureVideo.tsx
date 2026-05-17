@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { UploadIcon, FileVideoIcon } from './LucideIcons';
+import { UploadIcon, FileVideoIcon, SwitchCameraIcon } from './LucideIcons';
 
 interface CaptureVideoProps {
   onVideoCaptured: (file: File, apparatus: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l') => void;
@@ -12,16 +12,18 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
   const [customSkills, setCustomSkills] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const startCamera = async () => {
+  const startCamera = async (overrideFacingMode?: 'user' | 'environment') => {
     try {
+      const modeToUse = overrideFacingMode || facingMode;
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: { facingMode: modeToUse },
         audio: false // Depending on if audio is needed, but typically not for pose tracking MVP
       });
       setStream(mediaStream);
@@ -32,6 +34,14 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
       console.error("Failed to access camera", e);
       alert("Could not access camera. Please check permissions.");
     }
+  };
+
+  const switchCamera = async () => {
+    if (isRecording) return; // Prevent switching while recording
+    stopCamera();
+    const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(newFacingMode);
+    await startCamera(newFacingMode);
   };
 
   const stopCamera = () => {
@@ -238,13 +248,22 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
           />
           <div className="absolute bottom-6 flex gap-4">
             {!isRecording ? (
-              <button
-                onClick={startRecording}
-                className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2"
-              >
-                <div className="w-4 h-4 bg-white rounded-full"></div>
-                Start Recording
-              </button>
+              <>
+                <button
+                  onClick={switchCamera}
+                  className="bg-slate-800 hover:bg-slate-900 text-white font-bold p-3 rounded-full shadow-lg transition-transform transform hover:scale-105 border border-slate-600 flex items-center justify-center"
+                  title="Switch Camera"
+                >
+                  <SwitchCameraIcon className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={startRecording}
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2"
+                >
+                  <div className="w-4 h-4 bg-white rounded-full"></div>
+                  Start Recording
+                </button>
+              </>
             ) : (
               <button
                 onClick={stopRecording}
