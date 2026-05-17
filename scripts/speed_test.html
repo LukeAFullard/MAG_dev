@@ -67,9 +67,10 @@
 
       if (modelName.startsWith('vitpose-')) {
         const size = modelName.split('-')[1];
-        detectorConfig.detModel = "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/yolov8/yolov8s.onnx";
+        detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
         detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
       } else {
+        detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
         detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
       }
 
