@@ -10,7 +10,7 @@ export interface PoseData {
 export class PoseExtractor {
   private fps = 10; // Number of frames per second to extract pose for
 
-  public async extract(file: File, clip: ExtractedClip, engine: InferenceEngine, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l', onProgress?: (progress: number) => void): Promise<PoseData[]> {
+  public async extract(file: File, clip: ExtractedClip, engine: InferenceEngine, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h', onProgress?: (progress: number) => void): Promise<PoseData[]> {
     return new Promise((resolve, reject) => {
       const poses: PoseData[] = [];
       const video = document.createElement('video');
@@ -25,7 +25,7 @@ export class PoseExtractor {
 
         // BlazePose processing is slower, so we drop FPS for it to maintain reasonable processing times.
         // Fast mode uses 10 FPS. Detailed uses 5 FPS.
-        this.fps = analysisMode === 'rtmpose-s' ? 10 : 5;
+        this.fps = (analysisMode === 'rtmpose-s' || analysisMode === 'vitpose-s') ? 10 : 5;
 
         const timeStep = 1 / this.fps;
 

@@ -90,10 +90,22 @@ export class InferenceEngine {
             message: `Loading pose detector...`,
           });
         const device = this.isWebGPUSupported ? "webgpu" : "wasm";
-        const detectorConfig: any = {
+
+        let detectorConfig: any = {
           backend: device,
-          poseModel: "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx",
         };
+
+        if (model.startsWith('vitpose-')) {
+          // Two-stage ViTPose pipeline using YOLOv8 for detection
+          const size = model.split('-')[1]; // s, b, l, h
+          detectorConfig.detModel = "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/yolov8/yolov8s.onnx";
+          detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
+        } else {
+          // RTMPose end-to-end model
+          // Note: using end2end.onnx for all rtmpose sizes right now as per original code.
+          detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+        }
+
         const detector = new PoseDetector(detectorConfig);
         await detector.init();
         this.poseDetectors.set(key, detector);

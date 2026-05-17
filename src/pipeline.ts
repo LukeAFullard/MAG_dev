@@ -11,7 +11,7 @@ export interface VideoProcessingJob {
   message?: string;
   clips?: ExtractedClip[];
   apparatus?: string;
-  analysisMode?: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l';
+  analysisMode?: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h';
 }
 
 type JobUpdateCallback = (job: VideoProcessingJob) => void;
@@ -54,7 +54,7 @@ export class PipelineManager {
     return Array.from(this.jobs.values());
   }
 
-  public async startJob(filename: string, file?: File, apparatus?: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' = 'rtmpose-m'): Promise<string> {
+  public async startJob(filename: string, file?: File, apparatus?: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h' = 'rtmpose-m'): Promise<string> {
     const id = `job_${Date.now()}`;
     const newJob: VideoProcessingJob = {
       id,
