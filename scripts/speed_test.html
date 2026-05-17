@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pose Estimation Video Speed Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; }
+    #log { background: #f4f4f4; padding: 15px; margin-top: 20px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; min-height: 200px; max-height: 500px; overflow-y: scroll;}
+    canvas, video { border: 1px solid #ccc; margin-top: 20px; max-width: 100%; }
+    .models-container { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Pose Estimation Video Benchmark</h1>
+  <p>Tests different models on a sample video to compare loading and inference times across frames.</p>
+
+  <div class="models-container">
+    <button onclick="runTest('rtmpose-m')">Test RTMPose (end2end)</button>
+    <button onclick="runTest('vitpose-s')">Test ViTPose-Small (+ YOLO)</button>
+    <button onclick="runTest('vitpose-b')">Test ViTPose-Base (+ YOLO)</button>
+    <button onclick="runTest('vitpose-l')">Test ViTPose-Large (+ YOLO)</button>
+    <button onclick="runTest('vitpose-h')">Test ViTPose-Huge (+ YOLO)</button>
+    <button onclick="runAll()" style="background-color: #4CAF50; color: white;">Run All</button>
+  </div>
+
+  <div>
+    <label>Test Video URL: </label>
+    <input type="text" id="videoUrl" value="https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4" style="width: 400px; padding: 5px;">
+  </div>
+
+  <div id="log">Logs will appear here...</div>
+  <video id="video" style="display:none;" muted playsinline crossorigin="anonymous"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <script type="module">
+    import { PoseDetector } from 'https://cdn.jsdelivr.net/npm/rtmlib-ts@0.0.5/dist/index.js';
+
+    const logEl = document.getElementById('log');
+    window.log = function log(msg) {
+      console.log(msg);
+      logEl.innerHTML += msg + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    async function loadVideo(url) {
+      log(`Fetching video from ${url}...`);
+      const video = document.getElementById('video');
+      video.src = url;
+
+      return new Promise((resolve, reject) => {
+          video.onloadeddata = () => {
+              log(`Video loaded: ${video.videoWidth}x${video.videoHeight}, Duration: ${video.duration}s`);
+              resolve(video);
+          };
+          video.onerror = (e) => reject(new Error(`Error loading video: ${e.message}`));
+      });
+    }
+
+    async function benchmark(modelName) {
+      log(`\n--- Starting Video Benchmark: ${modelName} ---`);
+
+      const isWebGPUSupported = navigator.gpu ? true : false;
+      const device = isWebGPUSupported ? "webgpu" : "wasm";
+      log(`Device selected: ${device}`);
+
+      let detectorConfig = { backend: device };
+
+      if (modelName.startsWith('vitpose-')) {
+        const size = modelName.split('-')[1];
+        detectorConfig.detModel = "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/yolov8/yolov8s.onnx";
+        detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
+      } else {
+        detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+      }
+
+      log(`Configuring detector... (this will download model weights on first run)`);
+      const loadStart = performance.now();
+      const detector = new PoseDetector(detectorConfig);
+      await detector.init();
+      const loadTime = performance.now() - loadStart;
+      log(`Model initialization complete in ${loadTime.toFixed(2)}ms`);
+
+      const vidUrl = document.getElementById('videoUrl').value;
+      const video = await loadVideo(vidUrl);
+
+      const canvas = document.getElementById('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 360;
+      const ctx = canvas.getContext('2d');
+
+      log(`Running inference on video... extracting 10 frames`);
+
+      let totalInfTime = 0;
+      const framesToProcess = 10;
+      const duration = video.duration || 5;
+      const timeStep = duration / framesToProcess;
+
+      video.currentTime = 0;
+
+      for (let i = 0; i < framesToProcess; i++) {
+        // Seek to next frame
+        video.currentTime = i * timeStep;
+        await new Promise(resolve => {
+           video.onseeked = resolve;
+           setTimeout(resolve, 500);
+        });
+
+        // Draw to canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const infStart = performance.now();
+        const results = await detector.detectFromCanvas(canvas);
+        const infTime = performance.now() - infStart;
+        totalInfTime += infTime;
+
+        log(`Frame ${i+1} (${video.currentTime.toFixed(2)}s): ${infTime.toFixed(2)}ms (Detected ${results.length} people)`);
+      }
+
+      const avgTime = totalInfTime / framesToProcess;
+      log(`Average Frame Inference Time: ${avgTime.toFixed(2)}ms (${(1000/avgTime).toFixed(2)} FPS)`);
+    }
+
+    window.runTest = async (modelName) => {
+      document.getElementById('canvas').style.display = 'block';
+      logEl.innerHTML = '';
+      try {
+        await benchmark(modelName);
+      } catch (e) {
+        log(`ERROR: ${e.message}\n${e.stack}`);
+      }
+    };
+
+    window.runAll = async () => {
+      document.getElementById('canvas').style.display = 'block';
+      logEl.innerHTML = '';
+      const models = ['rtmpose-m', 'vitpose-s', 'vitpose-b', 'vitpose-l', 'vitpose-h'];
+      for (const model of models) {
+        try {
+          await benchmark(model);
+        } catch (e) {
+          log(`ERROR on ${model}: ${e.message}`);
+        }
+      }
+      log('\nAll benchmarks finished!');
+    };
+  </script>
+</body>
+</html>
