@@ -140,7 +140,7 @@ const AppContent: React.FC = () => {
     await fetchAthletes();
   };
 
-  const handleVideoCaptured = async (file: File, apparatus: string, analysisMode: 'fast' | 'detailed') => {
+  const handleVideoCaptured = async (file: File, apparatus: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l') => {
     try {
       const opfsFilename = await saveVideoToOPFS(file);
       console.log(`Saved video to OPFS: ${opfsFilename}`);
