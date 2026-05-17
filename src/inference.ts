@@ -90,14 +90,14 @@ export class InferenceEngine {
             message: `Loading ${model} pose detector...`,
           });
 
-        let poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+        let poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-m.onnx";
 
         if (model === "rtmpose-s") {
-          poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-s.onnx";
         } else if (model === "rtmpose-m") {
-          poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-m.onnx";
         } else if (model === "rtmpose-l") {
-          poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-l.onnx";
         }
 
         const device = (typeof navigator !== 'undefined' && (navigator as any).gpu) ? "webgpu" : "wasm";
@@ -140,7 +140,15 @@ export class InferenceEngine {
           return [];
         }
 
-        results = await detector.detectFromBitmap(input);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx)
+          throw new Error("Could not get 2d context for pose detection");
+        ctx.drawImage(input, 0, 0);
+
+        results = await detector.detectFromCanvas(canvas);
 
         input.close(); // Clean up ImageBitmap to prevent memory leaks
       } else if (input instanceof HTMLCanvasElement) {
