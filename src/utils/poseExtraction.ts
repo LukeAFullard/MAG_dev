@@ -30,14 +30,15 @@ export class PoseExtractor {
         const timeStep = 1 / this.fps;
 
         // Target width/height for pose estimation to save memory.
-        // MoveNet Thunder prefers 256x256, BlazePose can handle larger but keeping it reasonable saves compute.
+        // Both MoveNet and BlazePose can handle larger, but keeping it reasonable saves compute.
+        // Aggressively downsampling video frames to 256 degrades MoveNet detection fidelity too heavily on high-resolution aspect ratios.
         // The TensorFlow.js models automatically handle internal resizing, so we just need a reasonable canvas size
         // that preserves aspect ratio without eating up memory.
         const vidW = video.videoWidth || 640;
         const vidH = video.videoHeight || 640;
 
         // Calculate max dimension constraint while preserving aspect ratio
-        const maxDim = analysisMode === 'fast' ? 256 : 640;
+        const maxDim = 640;
         const scale = Math.min(maxDim / vidW, maxDim / vidH);
         const targetWidth = Math.floor(vidW * scale) || maxDim;
         const targetHeight = Math.floor(vidH * scale) || maxDim;
@@ -116,9 +117,11 @@ if (ls && rs && lh && rh && (ls.score || 1) > 0.3 && (rs.score || 1) > 0.3 && (l
                   }
                 }
 
-                // Map keypoints to COCO format
+                // Map keypoints to COCO format, extending with hands and feet for BlazePose
                 let mappedKeypoints = new Array(17).fill({x:0, y:0, score:0});
                 if (modelToUse === 'blazepose') {
+                  // We map up to 27 points to include hands and feet
+                  mappedKeypoints = new Array(27).fill({x:0, y:0, score:0});
                   const bpMap: Record<number, number> = {
                     0: 0, // nose
                     1: 2, // left_eye
@@ -137,8 +140,20 @@ if (ls && rs && lh && rh && (ls.score || 1) > 0.3 && (rs.score || 1) > 0.3 && (l
                     14: 26, // right_knee
                     15: 27, // left_ankle
                     16: 28, // right_ankle
+
+                    // Extended BlazePose keypoints
+                    17: 17, // left_pinky
+                    18: 18, // right_pinky
+                    19: 19, // left_index
+                    20: 20, // right_index
+                    21: 21, // left_thumb
+                    22: 22, // right_thumb
+                    23: 29, // left_heel
+                    24: 30, // right_heel
+                    25: 31, // left_foot_index
+                    26: 32, // right_foot_index
                   };
-                  for (let i = 0; i < 17; i++) {
+                  for (let i = 0; i <= 26; i++) {
                     mappedKeypoints[i] = keypoints[bpMap[i]] || {x:0, y:0, score:0};
                   }
                 } else {
@@ -187,10 +202,29 @@ if (ls && rs && lh && rh && (ls.score || 1) > 0.3 && (rs.score || 1) > 0.3 && (l
                  lastCOM = primaryAthlete.com;
               }
 
+              // Normalize coordinates to a base width of 640
+              const scaleFactor = 640 / targetWidth;
+              const normalizedKeypoints = primaryAthlete.keypoints.map((kp: any) => {
+                const scaledKp = {
+                  ...kp,
+                  x: kp.x * scaleFactor,
+                  y: kp.y * scaleFactor
+                };
+                if (kp.z !== undefined) {
+                  scaledKp.z = kp.z * scaleFactor;
+                }
+                return scaledKp;
+              });
+
+              const normalizedCom = primaryAthlete.com ? {
+                x: primaryAthlete.com.x * scaleFactor,
+                y: primaryAthlete.com.y * scaleFactor
+              } : undefined;
+
               poses.push({
                 time: Number(currentTime.toFixed(2)),
-                keypoints: primaryAthlete.keypoints,
-                com: primaryAthlete.com
+                keypoints: normalizedKeypoints,
+                com: normalizedCom
               });
             }
 
