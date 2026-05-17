@@ -87,32 +87,15 @@ export class InferenceEngine {
         if (onProgress)
           onProgress({
             status: "loading",
-            message: `Loading ${model} pose detector...`,
+            message: `Loading pose detector...`,
           });
-
-        let poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-m.onnx";
-
-        if (model === "rtmpose-s") {
-          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-s.onnx";
-        } else if (model === "rtmpose-m") {
-          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-m.onnx";
-        } else if (model === "rtmpose-l") {
-          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-l.onnx";
-        }
-
-        const device = (typeof navigator !== 'undefined' && (navigator as any).gpu) ? "webgpu" : "wasm";
+        const device = this.isWebGPUSupported ? "webgpu" : "wasm";
         const detectorConfig: any = {
           backend: device,
-          detModel: "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx",
-          poseModel: poseModelUrl,
-          detInputSize: [416, 416],
-          poseInputSize: [384, 288],
-          detConfidence: 0.5,
-          poseConfidence: 0.3,
+          poseModel: "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx",
         };
         const detector = new PoseDetector(detectorConfig);
         await detector.init();
-
         this.poseDetectors.set(key, detector);
       }
       return { message: "Pose detector loaded" };
