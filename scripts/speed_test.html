@@ -69,9 +69,11 @@
         const size = modelName.split('-')[1];
         detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
         detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
+        detectorConfig.poseInputSize = [256, 192];
       } else {
-        detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
+        detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx";
         detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+        detectorConfig.poseInputSize = [384, 288];
       }
 
       log(`Configuring detector... (this will download model weights on first run)`);

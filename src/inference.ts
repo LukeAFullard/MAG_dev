@@ -100,11 +100,14 @@ export class InferenceEngine {
           const size = model.split('-')[1]; // s, b, l, h
           detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
           detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
+          detectorConfig.poseInputSize = [256, 192]; // ViTPose COCO models expect 256x192
         } else {
           // RTMPose model - since 0.0.5 uses a 2 stage process we supply a YOLO detector here as well.
-          detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
+          // Fall back to yolov12n.onnx if yolov8n.onnx is not available in the library correctly, but let's stick to the README defaults
+          detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx";
           // We can use a different poseModel if we want, but end2end.onnx is what we had. Wait, end2end might be different, let's keep it for now.
           detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+          detectorConfig.poseInputSize = [384, 288]; // RTMW end2end models expect 384x288
         }
 
         const detector = new PoseDetector(detectorConfig);
