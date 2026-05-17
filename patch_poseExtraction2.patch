@@ -1,0 +1,25 @@
+--- src/utils/poseExtraction.ts
++++ src/utils/poseExtraction.ts
+@@ -29,11 +29,16 @@
+         const timeStep = 1 / this.fps;
+
+-        // Target width/height for pose estimation to save memory
+-        const targetWidth = 640;
+-        const vidW = video.videoWidth || 640;
+-        const vidH = video.videoHeight || 480;
+-        const scale = targetWidth / vidW;
+-        const targetHeight = Math.floor(vidH * scale) || 480;
++        // Target width/height for pose estimation to save memory.
++        // MoveNet Thunder prefers 256x256, BlazePose can handle larger but keeping it reasonable saves compute.
++        // The TensorFlow.js models automatically handle internal resizing, so we just need a reasonable canvas size
++        // that preserves aspect ratio without eating up memory.
++        const vidW = video.videoWidth || 640;
++        const vidH = video.videoHeight || 640;
++
++        // Calculate max dimension constraint while preserving aspect ratio
++        const maxDim = analysisMode === 'fast' ? 256 : 640;
++        const scale = Math.min(maxDim / vidW, maxDim / vidH);
++        const targetWidth = Math.floor(vidW * scale) || maxDim;
++        const targetHeight = Math.floor(vidH * scale) || maxDim;
+
+         const canvas = document.createElement('canvas');

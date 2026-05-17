@@ -93,12 +93,13 @@ export class InferenceEngine {
 
         let detector;
         if (model === "movenet") {
-          const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+          const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER };
           detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
         } else if (model === "blazepose") {
           const detectorConfig = {
             runtime: 'mediapipe' as const,
-            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose'
+            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose',
+            modelType: 'heavy'
           };
           detector = await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose, detectorConfig);
         } else {

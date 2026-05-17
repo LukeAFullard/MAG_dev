@@ -1,87 +1,18 @@
 --- src/inference.ts
 +++ src/inference.ts
-@@ -1,9 +1,11 @@
--import { PoseDetector } from "rtmlib-ts";
-+import * as poseDetection from "@tensorflow-models/pose-detection";
-+import "@tensorflow/tfjs-core";
-+import "@tensorflow/tfjs-backend-webgl";
+@@ -93,12 +93,13 @@
 
- export class InferenceEngine {
-   private static instance: InferenceEngine;
-   private worker: Worker;
--  private poseDetectors: Map<string, PoseDetector> = new Map();
-+  private poseDetectors: Map<string, poseDetection.PoseDetector> = new Map();
-   private messageCallbacks: Map<
-     string,
-     {
-@@ -79,20 +81,27 @@
-     model: string,
-     onProgress?: (data: any) => void,
-   ): Promise<any> {
--    if (task === "pose-estimation" && model === "rtmw") {
-+    if (task === "pose-estimation") {
-       const key = `${task}-${model}`;
-       if (!this.poseDetectors.has(key)) {
-         if (onProgress)
-           onProgress({
-             status: "loading",
--            message: `Loading pose detector...`,
-+            message: `Loading ${model} pose detector...`,
-           });
--        const device = this.isWebGPUSupported ? "webgpu" : "wasm";
--        const detectorConfig: any = {
--          backend: device,
--          poseModel:
--            "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx",
--        };
--        const detector = new PoseDetector(detectorConfig);
--        await detector.init();
-+
-+        let detector;
-+        if (model === "movenet") {
-+          const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
-+          detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
-+        } else if (model === "blazepose") {
-+          const detectorConfig = {
-+            runtime: 'mediapipe',
-+            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose'
-+          };
-+          detector = await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose, detectorConfig);
-+        } else {
-+          throw new Error(`Unsupported pose model: ${model}`);
-+        }
-+
-         this.poseDetectors.set(key, detector);
-       }
-       return { message: "Pose detector loaded" };
-@@ -107,7 +116,7 @@
-     input: any,
-     transfer?: Transferable[],
-   ): Promise<any> {
--    if (task === "pose-estimation" && model === "rtmw") {
-+    if (task === "pose-estimation") {
-       const key = `${task}-${model}`;
-       const detector = this.poseDetectors.get(key);
-       if (!detector)
-@@ -128,21 +137,13 @@
-         ctx.drawImage(input, 0, 0);
-         input.close(); // Clean up ImageBitmap to prevent memory leaks
--        const imageData = ctx.getImageData(0, 0, width, height);
--        results = await detector.detect(
--          new Uint8Array(imageData.data.buffer),
--          width,
--          height,
--        );
-+        results = await detector.estimatePoses(canvas);
-       } else if (input instanceof ImageData) {
--        results = await detector.detect(
--          new Uint8Array(input.data.buffer),
--          input.width,
--          input.height,
--        );
-+        results = await detector.estimatePoses(input);
-+      } else if (input instanceof HTMLCanvasElement || input instanceof HTMLVideoElement || input instanceof HTMLImageElement) {
-+        results = await detector.estimatePoses(input);
-       } else {
-         throw new Error("Unsupported input type for pose estimation");
-       }
+         let detector;
+         if (model === "movenet") {
+-          const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
++          const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER };
+           detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
+         } else if (model === "blazepose") {
+           const detectorConfig = {
+             runtime: 'mediapipe' as const,
+-            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose'
++            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose',
++            modelType: 'heavy'
+           };
+           detector = await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose, detectorConfig);
+         } else {
