@@ -76,12 +76,13 @@ export class InferenceEngine {
     }
   }
 
+
   public async loadModel(
     task: string,
     model: string,
     onProgress?: (data: any) => void,
   ): Promise<any> {
-    if (task === "pose-estimation") {
+    if (task === "pose-estimation" && !model.startsWith('vitpose-')) {
       const key = `${task}-${model}`;
       if (!this.poseDetectors.has(key)) {
         if (onProgress)
@@ -95,20 +96,10 @@ export class InferenceEngine {
           backend: device,
         };
 
-        if (model.startsWith('vitpose-')) {
-          // Two-stage ViTPose pipeline using YOLOv8 for detection
-          const size = model.split('-')[1]; // s, b, l, h
-          detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
-          detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
-          detectorConfig.poseInputSize = [256, 192]; // ViTPose COCO models expect 256x192
-        } else {
-          // RTMPose model - since 0.0.5 uses a 2 stage process we supply a YOLO detector here as well.
-          // Fall back to yolov12n.onnx if yolov8n.onnx is not available in the library correctly, but let's stick to the README defaults
-          detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx";
-          // We can use a different poseModel if we want, but end2end.onnx is what we had. Wait, end2end might be different, let's keep it for now.
-          detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
-          detectorConfig.poseInputSize = [384, 288]; // RTMW end2end models expect 384x288
-        }
+        // RTMPose model - since 0.0.5 uses a 2 stage process we supply a YOLO detector here as well.
+        detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx";
+        detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+        detectorConfig.poseInputSize = [384, 288]; // RTMW end2end models expect 384x288
 
         const detector = new PoseDetector(detectorConfig);
         await detector.init();
@@ -119,13 +110,15 @@ export class InferenceEngine {
     return this.postMessageAsync("load", { task, model }, onProgress);
   }
 
+
+
   public async runInference(
     task: string,
     model: string,
     input: any,
     transfer?: Transferable[],
   ): Promise<any> {
-    if (task === "pose-estimation") {
+    if (task === "pose-estimation" && !model.startsWith('vitpose-')) {
       const key = `${task}-${model}`;
       const detector = this.poseDetectors.get(key);
       if (!detector)
@@ -167,11 +160,55 @@ export class InferenceEngine {
       }
       return results;
     }
-    return this.postMessageAsync(
+
+
+    // For vitpose-, we need to send ImageData since ImageBitmap can't be handled by the worker if not converted properly
+    // Wait, we can extract ImageData here if input is ImageBitmap
+    if (task === "pose-estimation" && model.startsWith('vitpose-')) {
+        let imageData;
+        if (input instanceof ImageBitmap) {
+            const width = input.width;
+            const height = input.height;
+            if (width === 0 || height === 0) {
+              console.warn("Skipping pose detection for zero-dimension image.");
+              input.close();
+              return [];
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx)
+              throw new Error("Could not get 2d context for pose detection");
+            ctx.drawImage(input, 0, 0);
+
+            imageData = ctx.getImageData(0, 0, width, height);
+            input.close();
+        } else if (input instanceof HTMLCanvasElement) {
+            const ctx = input.getContext("2d");
+            if (!ctx)
+              throw new Error("Could not get 2d context for pose detection");
+            imageData = ctx.getImageData(0, 0, input.width, input.height);
+        } else if (input instanceof ImageData) {
+            imageData = input;
+        } else {
+            throw new Error("Unsupported input type for pose estimation");
+        }
+
+        return this.postMessageAsync(
+          "run",
+          { task, model, input: imageData },
+          undefined,
+          [imageData.data.buffer]
+        );
+    }
+return this.postMessageAsync(
       "run",
       { task, model, input },
       undefined,
       transfer,
     );
   }
+
 }
