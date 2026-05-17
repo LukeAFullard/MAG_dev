@@ -98,11 +98,12 @@ export class InferenceEngine {
         if (model.startsWith('vitpose-')) {
           // Two-stage ViTPose pipeline using YOLOv8 for detection
           const size = model.split('-')[1]; // s, b, l, h
-          detectorConfig.detModel = "https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/yolov8/yolov8s.onnx";
+          detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
           detectorConfig.poseModel = `https://huggingface.co/JunkyByte/easy_ViTPose/resolve/main/onnx/coco/vitpose-${size}-coco.onnx`;
         } else {
-          // RTMPose end-to-end model
-          // Note: using end2end.onnx for all rtmpose sizes right now as per original code.
+          // RTMPose model - since 0.0.5 uses a 2 stage process we supply a YOLO detector here as well.
+          detectorConfig.detModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov8n.onnx";
+          // We can use a different poseModel if we want, but end2end.onnx is what we had. Wait, end2end might be different, let's keep it for now.
           detectorConfig.poseModel = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
         }
 
