@@ -175,7 +175,7 @@ export class PipelineManager {
     const poseExtractor = new PoseExtractor();
     const totalClips = job.clips.length;
 
-    const clipsWithPoses: (ExtractedClip & { poses?: any[] })[] = [];
+    const clipsWithPoses: (ExtractedClip & { poses?: any[], depths?: any[] })[] = [];
 
     for (let i = 0; i < job.clips.length; i++) {
       if (signal.aborted) throw new DOMException('Aborted', 'AbortError');

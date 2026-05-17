@@ -1,0 +1,10 @@
+--- src/utils/autoClip.ts
++++ src/utils/autoClip.ts
+@@ -8,7 +8,6 @@
+   endTime: number;
+   category: string;
+   poses?: any[];
+-  depths?: any[];
+   landingMetrics?: any;
+   facingCamera?: boolean;
+ }
