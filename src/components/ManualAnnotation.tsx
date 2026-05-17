@@ -26,7 +26,13 @@ const POSE_CONNECTIONS = [
   [5, 11], [6, 12], // torso
   [11, 12], // hips
   [11, 13], [13, 15], // left leg
-  [12, 14], [14, 16] // right leg
+  [12, 14], [14, 16], // right leg
+
+  // Extended hands and feet connections (will only draw if points exist)
+  [9, 17], [9, 19], [9, 21], [17, 19], // left hand
+  [10, 18], [10, 20], [10, 22], [18, 20], // right hand
+  [15, 23], [15, 25], [23, 25], // left foot
+  [16, 24], [16, 26], [24, 26] // right foot
 ];
 
 export const ManualAnnotation: React.FC<ManualAnnotationProps> = ({ videoUrl, initialPoses = [], onSavePoses }) => {
