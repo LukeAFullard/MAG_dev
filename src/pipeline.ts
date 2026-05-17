@@ -11,7 +11,7 @@ export interface VideoProcessingJob {
   message?: string;
   clips?: ExtractedClip[];
   apparatus?: string;
-  analysisMode?: 'fast' | 'detailed';
+  analysisMode?: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l';
 }
 
 type JobUpdateCallback = (job: VideoProcessingJob) => void;
@@ -54,7 +54,7 @@ export class PipelineManager {
     return Array.from(this.jobs.values());
   }
 
-  public async startJob(filename: string, file?: File, apparatus?: string, analysisMode: 'fast' | 'detailed' = 'detailed'): Promise<string> {
+  public async startJob(filename: string, file?: File, apparatus?: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' = 'rtmpose-m'): Promise<string> {
     const id = `job_${Date.now()}`;
     const newJob: VideoProcessingJob = {
       id,
@@ -183,7 +183,7 @@ export class PipelineManager {
       try {
         // We can run pose and depth estimation sequentially or in parallel
         // Running sequentially to avoid memory overload in worker
-        const poses = await poseExtractor.extract(file, clip, engine, job.analysisMode || 'detailed', (clipProgress) => {
+        const poses = await poseExtractor.extract(file, clip, engine, job.analysisMode || 'rtmpose-m', (clipProgress) => {
           if (signal.aborted) return;
           const overallProgress = ((i + (clipProgress / 100)) / totalClips) * 100;
           this.updateJob(jobId, { progress: 33 + Math.min(33, (overallProgress / 100) * 33) });

@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadIcon, FileVideoIcon } from './LucideIcons';
 
 interface CaptureVideoProps {
-  onVideoCaptured: (file: File, apparatus: string, analysisMode: 'fast' | 'detailed') => void;
+  onVideoCaptured: (file: File, apparatus: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l') => void;
 }
 
 const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
   const [mode, setMode] = useState<'upload' | 'record'>('upload');
   const [apparatus, setApparatus] = useState<string>('Floor');
-  const [analysisMode, setAnalysisMode] = useState<'fast' | 'detailed'>('detailed');
+  const [analysisMode, setAnalysisMode] = useState<'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l'>('rtmpose-m');
   const [customSkills, setCustomSkills] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -179,11 +179,12 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
           <select
             id="mode-input"
             value={analysisMode}
-            onChange={(e) => setAnalysisMode(e.target.value as 'fast' | 'detailed')}
+            onChange={(e) => setAnalysisMode(e.target.value as 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l')}
             className="text-sm border-none bg-transparent focus:ring-0 text-slate-900 font-semibold outline-none"
           >
-            <option value="detailed">Detailed (Depth + High Acc.)</option>
-            <option value="fast">Fast (No Depth)</option>
+            <option value="rtmpose-s">RTMPose Small</option>
+            <option value="rtmpose-m">RTMPose Medium</option>
+            <option value="rtmpose-l">RTMPose Large</option>
           </select>
         </div>
       </div>

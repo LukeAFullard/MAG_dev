@@ -1,11 +1,10 @@
-import * as poseDetection from "@tensorflow-models/pose-detection";
-import "@tensorflow/tfjs-core";
-import "@tensorflow/tfjs-backend-webgl";
+
+import { PoseDetector } from "rtmlib-ts";
 
 export class InferenceEngine {
   private static instance: InferenceEngine;
   private worker: Worker;
-  private poseDetectors: Map<string, poseDetection.PoseDetector> = new Map();
+  private poseDetectors: Map<string, PoseDetector> = new Map();
   private messageCallbacks: Map<
     string,
     {
@@ -91,20 +90,26 @@ export class InferenceEngine {
             message: `Loading ${model} pose detector...`,
           });
 
-        let detector;
-        if (model === "movenet") {
-          const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER };
-          detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
-        } else if (model === "blazepose") {
-          const detectorConfig = {
-            runtime: 'mediapipe' as const,
-            solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose',
-            modelType: 'heavy'
-          };
-          detector = await poseDetection.createDetector(poseDetection.SupportedModels.BlazePose, detectorConfig);
-        } else {
-          throw new Error(`Unsupported pose model: ${model}`);
+        let poseModelUrl = "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/rtmpose/end2end.onnx";
+
+        // We can use the RTMW models (whole body) which offer high accuracy.
+        // Or Bukuroo's RTMPose ONNX models
+        if (model === "rtmpose-s") {
+          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-s.onnx";
+        } else if (model === "rtmpose-m") {
+          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-m.onnx";
+        } else if (model === "rtmpose-l") {
+          poseModelUrl = "https://huggingface.co/bukuroo/RTMPose-ONNX/resolve/main/rtmpose-l.onnx";
         }
+
+        const device = this.isWebGPUSupported ? "webgpu" : "wasm";
+        const detectorConfig: any = {
+          backend: device,
+          detModel: "https://huggingface.co/demon2233/rtmlib-ts/resolve/main/yolo/yolov12n.onnx",
+          poseModel: poseModelUrl,
+        };
+        const detector = new PoseDetector(detectorConfig);
+        await detector.init();
 
         this.poseDetectors.set(key, detector);
       }
@@ -136,6 +141,8 @@ export class InferenceEngine {
           input.close();
           return [];
         }
+        // rtmlib-ts detectFromBitmap is available in newer versions, but if not we can use detectFromCanvas or detect(imageData).
+        // Let's use detect(imageData) as it is most reliable and was used before.
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
@@ -144,11 +151,20 @@ export class InferenceEngine {
           throw new Error("Could not get 2d context for pose detection");
         ctx.drawImage(input, 0, 0);
         input.close(); // Clean up ImageBitmap to prevent memory leaks
-        results = await detector.estimatePoses(canvas);
+        const imageData = ctx.getImageData(0, 0, width, height);
+
+        // PoseDetector returns Array of Person objects: { bbox, keypoints: Keypoint[], scores }
+        results = await detector.detect(
+          new Uint8Array(imageData.data.buffer),
+          width,
+          height,
+        );
       } else if (input instanceof ImageData) {
-        results = await detector.estimatePoses(input);
-      } else if (input instanceof HTMLCanvasElement || input instanceof HTMLVideoElement || input instanceof HTMLImageElement) {
-        results = await detector.estimatePoses(input);
+        results = await detector.detect(
+          new Uint8Array(input.data.buffer),
+          input.width,
+          input.height,
+        );
       } else {
         throw new Error("Unsupported input type for pose estimation");
       }
