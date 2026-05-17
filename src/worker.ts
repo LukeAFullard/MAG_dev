@@ -48,7 +48,7 @@ self.addEventListener("message", async (event) => {
         if (task === "pose-estimation" && model.startsWith("vitpose-")) {
           // Load detector
           self.postMessage({ id, status: "progress", data: { status: "loading", message: `Loading person detector...` } });
-          const detector = await pipeline('object-detection', 'Xenova/yolos-tiny', { device: 'wasm' });
+          const detector = await pipeline('object-detection', 'Xenova/yolos-tiny', { device });
 
           // Load vitpose
           self.postMessage({ id, status: "progress", data: { status: "loading", message: `Loading ViTPose model...` } });
