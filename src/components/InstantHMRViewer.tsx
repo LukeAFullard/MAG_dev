@@ -38,6 +38,7 @@ export default function InstantHMRViewer() {
   const [cameraMode, setCameraMode] = useState('user'); // 'user' for front, 'environment' for rear
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isStreamActive, setIsStreamActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fps, setFps] = useState(0);
   const [deviceInfo, setDeviceInfo] = useState<{ webgpu: boolean | null, cameras: number }>({ webgpu: null, cameras: 0 });
@@ -145,6 +146,7 @@ export default function InstantHMRViewer() {
       // Stop existing stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
+        setIsStreamActive(false);
       }
 
       const constraints = {
@@ -157,6 +159,7 @@ export default function InstantHMRViewer() {
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+      setIsStreamActive(true);
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -238,32 +241,54 @@ export default function InstantHMRViewer() {
 
     try {
       // Use MediaPipe Pose for quick person detection
-      const results = await detectorRef.current.send({ image: canvas });
+      return await new Promise((resolve) => {
+        detectorRef.current.onResults((results: any) => {
+          if (results.poseLandmarks && results.poseLandmarks.length > 0) {
+            // Calculate bounding box from landmarks
+            const landmarks = results.poseLandmarks;
+            let minX = 1, minY = 1, maxX = 0, maxY = 0;
 
-      if (results.poseLandmarks && results.poseLandmarks.length > 0) {
-        // Calculate bounding box from landmarks
-        const landmarks = results.poseLandmarks;
-        let minX = 1, minY = 1, maxX = 0, maxY = 0;
+            landmarks.forEach((lm: any) => {
+              minX = Math.min(minX, lm.x);
+              minY = Math.min(minY, lm.y);
+              maxX = Math.max(maxX, lm.x);
+              maxY = Math.max(maxY, lm.y);
+            });
 
-        landmarks.forEach((lm: any) => {
-          minX = Math.min(minX, lm.x);
-          minY = Math.min(minY, lm.y);
-          maxX = Math.max(maxX, lm.x);
-          maxY = Math.max(maxY, lm.y);
+            // Add padding
+            const padding = 0.1;
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            resolve({
+              x: Math.max(0, (minX - padding * width) * canvas.width),
+              y: Math.max(0, (minY - padding * height) * canvas.height),
+              width: Math.min(canvas.width, (width * (1 + 2 * padding)) * canvas.width),
+              height: Math.min(canvas.height, (height * (1 + 2 * padding)) * canvas.height)
+            });
+          } else {
+             // Fallback
+            const cropRatio = 0.7;
+            resolve({
+              x: canvas.width * (1 - cropRatio) / 2,
+              y: canvas.height * (1 - cropRatio) / 2,
+              width: canvas.width * cropRatio,
+              height: canvas.height * cropRatio
+            });
+          }
         });
 
-        // Add padding
-        const padding = 0.1;
-        const width = maxX - minX;
-        const height = maxY - minY;
-
-        return {
-          x: Math.max(0, (minX - padding * width) * canvas.width),
-          y: Math.max(0, (minY - padding * height) * canvas.height),
-          width: Math.min(canvas.width, (width * (1 + 2 * padding)) * canvas.width),
-          height: Math.min(canvas.height, (height * (1 + 2 * padding)) * canvas.height)
-        };
-      }
+        detectorRef.current.send({ image: canvas }).catch((err: any) => {
+            console.error('Detection send error:', err);
+            const cropRatio = 0.7;
+            resolve({
+              x: canvas.width * (1 - cropRatio) / 2,
+              y: canvas.height * (1 - cropRatio) / 2,
+              width: canvas.width * cropRatio,
+              height: canvas.height * cropRatio
+            });
+        });
+      });
     } catch (err) {
       console.error('Detection error:', err);
     }
@@ -279,15 +304,15 @@ export default function InstantHMRViewer() {
   };
 
   // Process video frame and detect pose
-  const processFrame = async () => {
+  const processFrame = async (sourceVideo?: HTMLVideoElement) => {
     if (!videoRef.current || !canvasRef.current || !overlayRef.current) {
-      if (modeRef.current === 'live') {
-        animationRef.current = requestAnimationFrame(processFrame);
+      if (modeRef.current === 'live' || modeRef.current === 'recording') {
+        animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
       }
       return;
     }
 
-    const video = videoRef.current;
+    const video = sourceVideo || videoRef.current;
     const canvas = canvasRef.current;
     const overlay = overlayRef.current;
     const ctx = canvas.getContext('2d');
@@ -295,7 +320,7 @@ export default function InstantHMRViewer() {
 
     if (!ctx || !octx) return;
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    if (video.readyState >= video.HAVE_CURRENT_DATA) {
       // Match canvas size to video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -313,7 +338,20 @@ export default function InstantHMRViewer() {
 
         if (sessionRef.current && inputTensor) {
           // Run inference
-          const feeds = { [sessionRef.current.inputNames[0]]: inputTensor };
+          const feeds: any = { [sessionRef.current.inputNames[0]]: inputTensor };
+
+          // Provide cliff_cond if the model expects it (e.g. [1, 3] tensor for center and scale)
+          if (sessionRef.current.inputNames.length > 1) {
+             const cliffCondName = sessionRef.current.inputNames[1];
+             const ort = (window as any).ort;
+             // Calculate center and scale from bbox
+             // This is a simple approximation; real InstantHMR might want normalized values
+             const cx = detectedPersonRef.current ? detectedPersonRef.current.x + detectedPersonRef.current.width / 2 : canvas.width / 2;
+             const cy = detectedPersonRef.current ? detectedPersonRef.current.y + detectedPersonRef.current.height / 2 : canvas.height / 2;
+             const scale = detectedPersonRef.current ? Math.max(detectedPersonRef.current.width, detectedPersonRef.current.height) / 200 : 1.0;
+             feeds[cliffCondName] = new ort.Tensor('float32', new Float32Array([cx, cy, scale]), [1, 3]);
+          }
+
           const results = await sessionRef.current.run(feeds);
 
           // Extract joints from output
@@ -341,8 +379,8 @@ export default function InstantHMRViewer() {
       }
     }
 
-    if (modeRef.current === 'live') {
-      animationRef.current = requestAnimationFrame(processFrame);
+    if (modeRef.current === 'live' || modeRef.current === 'recording') {
+      animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
     }
   };
 
@@ -371,9 +409,8 @@ export default function InstantHMRViewer() {
         video.onseeked = resolve;
       });
 
-      // Set video ref for processing
-      videoRef.current = video;
-      await processFrame();
+      // Pass video directly for processing
+      await processFrame(video);
 
       // Update progress
       setAnalysisProgress((time / duration) * 100);
@@ -390,7 +427,7 @@ export default function InstantHMRViewer() {
       const modelSize = 256;
 
       // Detect person bounding box for optimal cropping (much faster inference)
-      const bbox = await detectPerson(canvas);
+      const bbox = await detectPerson(canvas) as any;
       detectedPersonRef.current = bbox;
 
       // Create offscreen canvas for preprocessing
@@ -519,8 +556,8 @@ export default function InstantHMRViewer() {
 
   // Start/stop processing
   useEffect(() => {
-    if (isModelLoaded && streamRef.current) {
-      animationRef.current = requestAnimationFrame(processFrame);
+    if (isModelLoaded && isStreamActive && (mode === 'live' || mode === 'recording')) {
+      animationRef.current = requestAnimationFrame(() => processFrame());
     }
 
     return () => {
@@ -528,7 +565,7 @@ export default function InstantHMRViewer() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isModelLoaded]);
+  }, [isModelLoaded, isStreamActive, mode]);
 
   // Restart camera when mode changes
   useEffect(() => {
@@ -542,6 +579,7 @@ export default function InstantHMRViewer() {
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
+        setIsStreamActive(false);
       }
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
