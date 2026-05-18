@@ -21,26 +21,25 @@ import { CameraIcon as Camera, FileVideoIcon as Video, SquareIcon as Square, Ale
  * 3. This uses ONNX Runtime Web with WebGPU backend
  */
 
-// SMPL skeleton connections (simplified 24-joint skeleton)
+// COCO 17-keypoint connections
 const SKELETON_CONNECTIONS = [
-  [0, 1], [0, 2], [0, 3],  // Pelvis to legs and spine
-  [1, 4], [2, 5],          // Upper legs
-  [4, 7], [5, 8],          // Lower legs
-  [7, 10], [8, 11],        // Feet
-  [3, 6], [6, 9],          // Spine to chest to head
-  [9, 12], [9, 13], [9, 14], // Head and shoulders
-  [12, 15], [13, 16],      // Upper arms
-  [15, 18], [16, 19],      // Lower arms
-  [18, 20], [19, 21],      // Hands
-  [20, 22], [21, 23]       // Hand extensions
+  [0, 1], [0, 2], [1, 3], [2, 4], // Head
+  [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], // Arms
+  [5, 11], [6, 12], [11, 12], // Torso
+  [11, 13], [13, 15], [12, 14], [14, 16] // Legs
 ];
 
 const JOINT_NAMES = [
-  'Pelvis', 'L_Hip', 'R_Hip', 'Spine1', 'L_Knee', 'R_Knee', 'Spine2',
-  'L_Ankle', 'R_Ankle', 'Spine3', 'L_Foot', 'R_Foot', 'Neck',
-  'L_Collar', 'R_Collar', 'Head', 'L_Shoulder', 'R_Shoulder',
-  'L_Elbow', 'R_Elbow', 'L_Wrist', 'R_Wrist', 'L_Hand', 'R_Hand'
+  'Nose', 'L_Eye', 'R_Eye', 'L_Ear', 'R_Ear',
+  'L_Shoulder', 'R_Shoulder', 'L_Elbow', 'R_Elbow',
+  'L_Wrist', 'R_Wrist', 'L_Hip', 'R_Hip',
+  'L_Knee', 'R_Knee', 'L_Ankle', 'R_Ankle'
 ];
+
+const MHR70_TO_COCO_MAP: Record<number, number> = {
+  0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8,
+  41: 10, 62: 9, 9: 11, 10: 12, 11: 13, 12: 14, 13: 15, 14: 16
+};
 
 export default function InstantHMRViewer() {
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user'); // 'user' for front, 'environment' for rear
@@ -54,6 +53,7 @@ export default function InstantHMRViewer() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const tempCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<any>(null);
   const animationRef = useRef<number | null>(null);
@@ -195,10 +195,14 @@ export default function InstantHMRViewer() {
             const sq_x1 = (canvas.width - sq_size) / 2;
             const sq_y1 = (canvas.height - sq_size) / 2;
 
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = INPUT_SIZE;
-            tempCanvas.height = INPUT_SIZE;
-            const tempCtx = tempCanvas.getContext('2d');
+            if (!tempCanvasRef.current) {
+                const temp = document.createElement('canvas');
+                temp.width = INPUT_SIZE;
+                temp.height = INPUT_SIZE;
+                tempCanvasRef.current = temp;
+            }
+
+            const tempCtx = tempCanvasRef.current.getContext('2d', { willReadFrequently: true });
             if (tempCtx) {
                 tempCtx.drawImage(canvas, sq_x1, sq_y1, sq_size, sq_size, 0, 0, INPUT_SIZE, INPUT_SIZE);
                 const imageData = tempCtx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE).data;
@@ -220,7 +224,10 @@ export default function InstantHMRViewer() {
                 }
 
                 const ort = (window as any).ort;
-                const cliff_cond = new Float32Array([0, 0, 1.0]); // Centered dummy cond
+
+                // BBox scale relative to the image
+                const b_scale = sq_size / Math.max(canvas.width, canvas.height);
+                const cliff_cond = new Float32Array([0, 0, b_scale]); // Center is 0,0 normalized
 
                 const feeds = {
                     "image": new ort.Tensor('float32', cropFloat32, [1, 3, INPUT_SIZE, INPUT_SIZE]),
@@ -231,7 +238,10 @@ export default function InstantHMRViewer() {
                 const joints_2d_norm = outs["joints_2d"].data;
 
                 const scale = sq_size / INPUT_SIZE;
-                for (let i = 0; i < 24; i++) { // Render first 24 joints
+
+                const keypoints: any[] = new Array(17).fill(null);
+                for (let i = 0; i < 70; i++) {
+                    if (!(i in MHR70_TO_COCO_MAP)) continue;
                     const x_norm = joints_2d_norm[i * 2];
                     const y_norm = joints_2d_norm[i * 2 + 1];
 
@@ -241,7 +251,11 @@ export default function InstantHMRViewer() {
                     const full_x = crop_px_x * scale + sq_x1;
                     const full_y = crop_px_y * scale + sq_y1;
 
-                    joints.push({ x: full_x, y: full_y, z: 0, confidence: 1.0 });
+                    keypoints[MHR70_TO_COCO_MAP[i]] = { x: full_x, y: full_y, z: 0, confidence: 1.0 };
+                }
+
+                for (let i = 0; i < 17; i++) {
+                    joints.push(keypoints[i] || { x: 0, y: 0, z: 0, confidence: 0 });
                 }
             }
         }
