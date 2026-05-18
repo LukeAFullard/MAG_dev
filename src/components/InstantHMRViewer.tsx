@@ -54,7 +54,7 @@ export default function InstantHMRViewer() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // const sessionRef = useRef<any>(null);
+  const sessionRef = useRef<any>(null);
   const animationRef = useRef<number | null>(null);
   const fpsCounterRef = useRef({ frames: 0, lastTime: Date.now() });
 
@@ -85,7 +85,7 @@ export default function InstantHMRViewer() {
           return;
         }
 
-        // const ort = (window as any).ort;
+        const ort = (window as any).ort;
 
         // Set execution provider to WebGPU if available, fallback to WASM
         const executionProviders = deviceInfo.webgpu
@@ -93,14 +93,14 @@ export default function InstantHMRViewer() {
           : ['wasm'];
 
         // NOTE: Replace this URL with your actual model URL
-        // const MODEL_URL = '/models/instant_hmr.onnx';
+        const MODEL_URL = 'https://huggingface.co/momolesang/InstantHMR/resolve/main/instanthmr.onnx';
 
         // For demo purposes, we'll skip actual model loading
         // In production, uncomment this:
-        // const session = await ort.InferenceSession.create(MODEL_URL, {
-        //   executionProviders
-        // });
-        // sessionRef.current = session;
+        const session = await ort.InferenceSession.create(MODEL_URL, {
+          executionProviders
+        });
+        sessionRef.current = session;
 
         console.log('Model would load with providers:', executionProviders);
         setIsModelLoaded(true);
@@ -182,8 +182,64 @@ export default function InstantHMRViewer() {
         // 2. Run inference through ONNX Runtime
         // 3. Post-process the outputs (joints_3d, vertices)
 
-        // For demo, generate synthetic pose data
-        const joints = generateDemoPose(canvas.width, canvas.height);
+        const joints: any[] = [];
+        if (sessionRef.current) {
+            // Preprocess: Crop center, resize to 224x224, and normalize
+            const INPUT_SIZE = 224;
+            const sq_size = Math.min(canvas.width, canvas.height);
+            const sq_x1 = (canvas.width - sq_size) / 2;
+            const sq_y1 = (canvas.height - sq_size) / 2;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = INPUT_SIZE;
+            tempCanvas.height = INPUT_SIZE;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (tempCtx) {
+                tempCtx.drawImage(canvas, sq_x1, sq_y1, sq_size, sq_size, 0, 0, INPUT_SIZE, INPUT_SIZE);
+                const imageData = tempCtx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE).data;
+
+                const cropFloat32 = new Float32Array(3 * INPUT_SIZE * INPUT_SIZE);
+                const mean = [0.485, 0.456, 0.406];
+                const std = [0.229, 0.224, 0.225];
+
+                let p = 0;
+                for (let i = 0; i < INPUT_SIZE * INPUT_SIZE; i++) {
+                    const r = imageData[i*4] / 255.0;
+                    const g = imageData[i*4+1] / 255.0;
+                    const b = imageData[i*4+2] / 255.0;
+
+                    cropFloat32[p] = (r - mean[0]) / std[0];
+                    cropFloat32[INPUT_SIZE * INPUT_SIZE + p] = (g - mean[1]) / std[1];
+                    cropFloat32[2 * INPUT_SIZE * INPUT_SIZE + p] = (b - mean[2]) / std[2];
+                    p++;
+                }
+
+                const ort = (window as any).ort;
+                const cliff_cond = new Float32Array([0, 0, 1.0]); // Centered dummy cond
+
+                const feeds = {
+                    "image": new ort.Tensor('float32', cropFloat32, [1, 3, INPUT_SIZE, INPUT_SIZE]),
+                    "cliff_cond": new ort.Tensor('float32', cliff_cond, [1, 3])
+                };
+
+                const outs = await sessionRef.current.run(feeds);
+                const joints_2d_norm = outs["joints_2d"].data;
+
+                const scale = sq_size / INPUT_SIZE;
+                for (let i = 0; i < 24; i++) { // Render first 24 joints
+                    const x_norm = joints_2d_norm[i * 2];
+                    const y_norm = joints_2d_norm[i * 2 + 1];
+
+                    const crop_px_x = (x_norm + 1.0) * 0.5 * INPUT_SIZE;
+                    const crop_px_y = (y_norm + 1.0) * 0.5 * INPUT_SIZE;
+
+                    const full_x = crop_px_x * scale + sq_x1;
+                    const full_y = crop_px_y * scale + sq_y1;
+
+                    joints.push({ x: full_x, y: full_y, z: 0, confidence: 1.0 });
+                }
+            }
+        }
 
         // Draw skeleton overlay
         drawSkeleton(octx, joints, canvas.width, canvas.height);
@@ -198,27 +254,6 @@ export default function InstantHMRViewer() {
     }
 
     animationRef.current = requestAnimationFrame(processFrame);
-  };
-
-  // Generate demo pose data (replace with actual model inference)
-  const generateDemoPose = (width: number, height: number) => {
-    const t = Date.now() * 0.001;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    // Simulate 24 body joints with subtle animation
-    const joints = [];
-    for (let i = 0; i < 24; i++) {
-      const angle = (i / 24) * Math.PI * 2 + t * 0.5;
-      const radius = 100 + i * 10;
-      joints.push({
-        x: centerX + Math.cos(angle) * radius,
-        y: centerY + Math.sin(angle) * radius,
-        z: Math.sin(t + i) * 50, // Depth
-        confidence: 0.8 + Math.random() * 0.2
-      });
-    }
-    return joints;
   };
 
   // Draw skeleton on overlay canvas
