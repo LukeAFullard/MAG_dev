@@ -42,7 +42,8 @@ export default function InstantHMRViewer() {
   const [error, setError] = useState<string | null>(null);
   const [fps, setFps] = useState(0);
   const [deviceInfo, setDeviceInfo] = useState<{ webgpu: boolean | null, cameras: number }>({ webgpu: null, cameras: 0 });
-  const [mode, _setMode] = useState('live'); // 'live', 'recording', 'analyzing'
+  const [mode, _setMode] = useState('live'); // 'live', 'recording', 'analyzing', 'playback'
+  const [isPlaying, setIsPlaying] = useState(false);
   const modeRef = useRef('live');
   const setMode = (newMode: string) => {
     modeRef.current = newMode;
@@ -63,6 +64,7 @@ export default function InstantHMRViewer() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const videoFileInputRef = useRef<HTMLInputElement>(null);
+  const analyzedPosesRef = useRef<{time: number, joints: any[]}[]>([]);
 
   // Check WebGPU support and available cameras
   useEffect(() => {
@@ -369,6 +371,10 @@ export default function InstantHMRViewer() {
             octx.lineWidth = 2;
             octx.strokeRect(detectedPersonRef.current.x, detectedPersonRef.current.y, detectedPersonRef.current.width, detectedPersonRef.current.height);
           }
+
+          if (modeRef.current === 'analyzing') {
+            return joints;
+          }
         }
 
         // Update FPS
@@ -391,6 +397,7 @@ export default function InstantHMRViewer() {
 
     setMode('analyzing');
     setAnalysisProgress(0);
+    analyzedPosesRef.current = [];
 
     const video = document.createElement('video');
     video.src = recordedVideo;
@@ -411,14 +418,96 @@ export default function InstantHMRViewer() {
       });
 
       // Pass video directly for processing
-      await processFrame(video);
+      const joints = await processFrame(video);
+      if (joints) {
+        analyzedPosesRef.current.push({ time, joints });
+      }
 
       // Update progress
       setAnalysisProgress((time / duration) * 100);
     }
 
     setAnalysisProgress(100);
-    alert('Video analysis complete!');
+    setMode('playback');
+  };
+
+  // Play analyzed video with skeleton overlay
+  const playAnalyzedVideo = () => {
+    if (isPlaying) return; // Guard against multiple clicks
+    if (!recordedVideo || !videoRef.current || !canvasRef.current || !overlayRef.current) return;
+
+    const canvas = canvasRef.current;
+    const overlay = overlayRef.current;
+    const ctx = canvas.getContext('2d');
+    const octx = overlay.getContext('2d');
+
+    if (!ctx || !octx) return;
+
+    // Use a separate video element to prevent interfering with main ref stream if any
+    const playbackVideo = document.createElement('video');
+    playbackVideo.src = recordedVideo;
+    playbackVideo.muted = true;
+    playbackVideo.playsInline = true;
+
+    playbackVideo.onloadedmetadata = () => {
+      canvas.width = playbackVideo.videoWidth;
+      canvas.height = playbackVideo.videoHeight;
+      overlay.width = playbackVideo.videoWidth;
+      overlay.height = playbackVideo.videoHeight;
+      playbackVideo.play();
+    };
+
+    const drawFrame = () => {
+      if (modeRef.current !== 'playback') {
+        playbackVideo.pause();
+        return;
+      }
+
+      if (playbackVideo.readyState >= playbackVideo.HAVE_CURRENT_DATA) {
+        ctx.drawImage(playbackVideo, 0, 0, canvas.width, canvas.height);
+
+        // Find closest pose
+        const currentTime = playbackVideo.currentTime;
+        const poses = analyzedPosesRef.current;
+
+        let closestPose = null;
+        let minDiff = Infinity;
+
+        for (let i = 0; i < poses.length; i++) {
+          const diff = Math.abs(poses[i].time - currentTime);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestPose = poses[i].joints;
+          }
+        }
+
+        octx.clearRect(0, 0, canvas.width, canvas.height);
+        if (closestPose && minDiff < 0.2) {
+          drawSkeleton(octx, closestPose, canvas.width, canvas.height);
+        }
+      }
+
+      if (!playbackVideo.paused && !playbackVideo.ended) {
+        requestAnimationFrame(drawFrame);
+      } else if (playbackVideo.ended) {
+         // Stop when ended
+      } else {
+        requestAnimationFrame(drawFrame);
+      }
+    };
+
+    playbackVideo.onplay = () => {
+      setIsPlaying(true);
+      drawFrame();
+    };
+
+    playbackVideo.onpause = () => {
+      setIsPlaying(false);
+    };
+
+    playbackVideo.onended = () => {
+      setIsPlaying(false);
+    };
   };
 
   // Preprocess video frame for model input with person detection
@@ -697,6 +786,7 @@ export default function InstantHMRViewer() {
               {mode === 'live' && '🔴 Live'}
               {mode === 'recording' && '⏺️ Recording'}
               {mode === 'analyzing' && '📊 Analysis'}
+              {mode === 'playback' && '▶️ Playback'}
             </div>
           </div>
 
@@ -925,7 +1015,7 @@ export default function InstantHMRViewer() {
             📁 Upload Video
           </button>
 
-          {mode === 'analyzing' && recordedVideo && (
+          {mode === 'analyzing' && recordedVideo && analysisProgress === 0 && (
             <button
               onClick={analyzeVideo}
               style={{
@@ -950,12 +1040,38 @@ export default function InstantHMRViewer() {
             </button>
           )}
 
-          {mode === 'analyzing' && (
+          {mode === 'playback' && (
+            <button
+              onClick={playAnalyzedVideo}
+              style={{
+                background: 'rgba(0, 255, 136, 0.15)',
+                border: '2px solid #00ff88',
+                color: '#00ff88',
+                padding: '12px 24px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '600',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase'
+              }}
+            >
+              ▶ Play Result
+            </button>
+          )}
+
+          {(mode === 'analyzing' || mode === 'playback') && (
             <button
               onClick={() => {
                 setMode('live');
                 setRecordedVideo(null);
                 setAnalysisProgress(0);
+                setIsPlaying(false);
               }}
               style={{
                 background: 'rgba(100, 181, 246, 0.15)',
@@ -1076,6 +1192,24 @@ export default function InstantHMRViewer() {
               <Video style={{ color: '#ffc107', opacity: 0.5, width: '64px', height: '64px' }} />
               <div style={{ fontSize: '16px', opacity: 0.7 }}>
                 Video ready. Click "Analyze Video" to process.
+              </div>
+            </div>
+          )}
+
+          {mode === 'playback' && !isPlaying && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(0, 0, 0, 0.8)',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <Video style={{ color: '#00ff88', opacity: 0.5, width: '64px', height: '64px' }} />
+              <div style={{ fontSize: '16px', opacity: 0.7 }}>
+                Analysis complete. Click "Play Result" to view.
               </div>
             </div>
           )}
