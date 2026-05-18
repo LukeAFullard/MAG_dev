@@ -1184,7 +1184,7 @@ export default function InstantHMRViewer() {
           <canvas
             ref={canvasRef}
             style={{
-              display: 'block',
+              display: mode === 'live' || mode === 'recording' ? 'none' : 'block',
               width: '100%',
               height: 'auto',
               maxHeight: '70vh'
