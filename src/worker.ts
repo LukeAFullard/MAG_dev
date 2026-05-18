@@ -53,7 +53,11 @@ self.addEventListener("message", async (event) => {
           // Load vitpose
           self.postMessage({ id, status: "progress", data: { status: "loading", message: `Loading ViTPose model...` } });
           const size = model.split('-')[1] || 'base';
-          const vitposeId = `onnx-community/vitpose-${size}-simple`;
+          let vitposeId = `onnx-community/vitpose-base-simple`;
+          if (size === "s") vitposeId = "onnx-community/vitpose-plus-small-ONNX";
+          else if (size === "b") vitposeId = "onnx-community/vitpose-base-simple";
+          else if (size === "l") vitposeId = "onnx-community/vitpose-plus-base-ONNX"; // large unsupported, fallback to base
+          else if (size === "h") vitposeId = "onnx-community/vitpose-base-simple"; // huge has external data issue, fallback to base
           const vitposeModel = await AutoModel.from_pretrained(vitposeId, { device });
           const vitposeProcessor = await AutoImageProcessor.from_pretrained(vitposeId);
 
