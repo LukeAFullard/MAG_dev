@@ -419,6 +419,7 @@ export default function InstantHMRViewer() {
 
       // Pass video directly for processing
       const joints = await processFrame(video);
+      console.log("Analyzing time", time, "got joints?", !!joints);
       if (joints) {
         analyzedPosesRef.current.push({ time, joints });
       }
@@ -514,7 +515,7 @@ export default function InstantHMRViewer() {
   const preprocessFrame = async (_ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     try {
       const ort = (window as any).ort;
-      const modelSize = 256;
+      const modelSize = 224;
 
       // Detect person bounding box for optimal cropping (much faster inference)
       const bbox = await detectPerson(canvas) as any;
