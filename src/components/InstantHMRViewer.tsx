@@ -1,63 +1,67 @@
 import { useState, useRef, useEffect } from 'react';
 import { CameraIcon as Camera, FileVideoIcon as Video, SquareIcon as Square, AlertCircleIcon as AlertCircle, Loader2Icon as Loader } from './LucideIcons';
 
+
 /*
  * InstantHMR Browser Implementation
  *
+ * Uses the official ONNX model from HuggingFace:
+ * https://huggingface.co/momolesang/InstantHMR
+ *
  * SETUP REQUIRED:
- * 1. Export the InstantHMR PyTorch model to ONNX format:
- *    - Install: pip install onnx onnxruntime
- *    - Export script example:
- *      import torch
- *      model = ... # Load your InstantHMR model
- *      dummy_input = torch.randn(1, 3, 256, 256)
- *      torch.onnx.export(model, dummy_input, "instant_hmr.onnx",
- *                       input_names=['image'],
- *                       output_names=['joints_3d', 'vertices'],
- *                       dynamic_axes={'image': {0: 'batch'}})
- *
- * 2. Host the ONNX model file and update MODEL_URL below
- *
- * 3. This uses ONNX Runtime Web with WebGPU backend
+ * Include ONNX Runtime Web in your HTML:
+ * <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
  */
 
-// COCO 17-keypoint connections
+// SMPL skeleton connections (simplified 24-joint skeleton)
 const SKELETON_CONNECTIONS = [
-  [0, 1], [0, 2], [1, 3], [2, 4], // Head
-  [5, 6], [5, 7], [7, 9], [6, 8], [8, 10], // Arms
-  [5, 11], [6, 12], [11, 12], // Torso
-  [11, 13], [13, 15], [12, 14], [14, 16] // Legs
+  [0, 1], [0, 2], [0, 3],  // Pelvis to legs and spine
+  [1, 4], [2, 5],          // Upper legs
+  [4, 7], [5, 8],          // Lower legs
+  [7, 10], [8, 11],        // Feet
+  [3, 6], [6, 9],          // Spine to chest to head
+  [9, 12], [9, 13], [9, 14], // Head and shoulders
+  [12, 15], [13, 16],      // Upper arms
+  [15, 18], [16, 19],      // Lower arms
+  [18, 20], [19, 21],      // Hands
+  [20, 22], [21, 23]       // Hand extensions
 ];
 
 const JOINT_NAMES = [
-  'Nose', 'L_Eye', 'R_Eye', 'L_Ear', 'R_Ear',
-  'L_Shoulder', 'R_Shoulder', 'L_Elbow', 'R_Elbow',
-  'L_Wrist', 'R_Wrist', 'L_Hip', 'R_Hip',
-  'L_Knee', 'R_Knee', 'L_Ankle', 'R_Ankle'
+  'Pelvis', 'L_Hip', 'R_Hip', 'Spine1', 'L_Knee', 'R_Knee', 'Spine2',
+  'L_Ankle', 'R_Ankle', 'Spine3', 'L_Foot', 'R_Foot', 'Neck',
+  'L_Collar', 'R_Collar', 'Head', 'L_Shoulder', 'R_Shoulder',
+  'L_Elbow', 'R_Elbow', 'L_Wrist', 'R_Wrist', 'L_Hand', 'R_Hand'
 ];
 
-const MHR70_TO_COCO_MAP: Record<number, number> = {
-  0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8,
-  41: 10, 62: 9, 9: 11, 10: 12, 11: 13, 12: 14, 13: 15, 14: 16
-};
-
 export default function InstantHMRViewer() {
-  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user'); // 'user' for front, 'environment' for rear
+  const [cameraMode, setCameraMode] = useState('user'); // 'user' for front, 'environment' for rear
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fps, setFps] = useState(0);
-  const [deviceInfo, setDeviceInfo] = useState({ webgpu: false, cameras: 0 });
-  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState<{ webgpu: boolean | null, cameras: number }>({ webgpu: null, cameras: 0 });
+  const [mode, _setMode] = useState('live'); // 'live', 'recording', 'analyzing'
+  const modeRef = useRef('live');
+  const setMode = (newMode: string) => {
+    modeRef.current = newMode;
+    _setMode(newMode);
+  };
+  const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
-  const tempCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<any>(null);
+  const detectorRef = useRef<any>(null);
   const animationRef = useRef<number | null>(null);
   const fpsCounterRef = useRef({ frames: 0, lastTime: Date.now() });
+  const detectedPersonRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
 
   // Check WebGPU support and available cameras
   useEffect(() => {
@@ -88,24 +92,41 @@ export default function InstantHMRViewer() {
 
         const ort = (window as any).ort;
 
-        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
-
         // Set execution provider to WebGPU if available, fallback to WASM
         const executionProviders = deviceInfo.webgpu
           ? ['webgpu', 'wasm']
           : ['wasm'];
 
-        // NOTE: Replace this URL with your actual model URL
-        const MODEL_URL = 'https://huggingface.co/momolesang/InstantHMR/resolve/main/instanthmr.onnx';
+        // Initialize lightweight person detector (using MediaPipe Pose for bounding box)
+        // Alternative to RF-DETR - provides person bounding box for cropping
+        console.log('Initializing person detector...');
+        if (typeof (window as any).Pose !== 'undefined') {
+          const pose = new (window as any).Pose({
+            locateFile: (file: string) => {
+              return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+            }
+          });
+          pose.setOptions({
+            modelComplexity: 0, // Fastest model for detection only
+            smoothLandmarks: false,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+          });
+          detectorRef.current = pose;
+          console.log('Person detector initialized');
+        }
 
-        // For demo purposes, we'll skip actual model loading
-        // In production, uncomment this:
+        // Load InstantHMR model from HuggingFace
+        console.log('Loading InstantHMR model from HuggingFace...');
+        const MODEL_URL = 'https://huggingface.co/momolesang/InstantHMR/resolve/main/instant_hmr.onnx';
         const session = await ort.InferenceSession.create(MODEL_URL, {
           executionProviders
         });
         sessionRef.current = session;
 
-        console.log('Model would load with providers:', executionProviders);
+        console.log('Model loaded successfully with providers:', executionProviders);
+        console.log('Input names:', session.inputNames);
+        console.log('Output names:', session.outputNames);
         setIsModelLoaded(true);
       } catch (err: any) {
         setError(`Model loading failed: ${err.message}`);
@@ -124,7 +145,6 @@ export default function InstantHMRViewer() {
       // Stop existing stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
-        setIsCameraActive(false);
       }
 
       const constraints = {
@@ -141,7 +161,6 @@ export default function InstantHMRViewer() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
-        setIsCameraActive(true);
       }
 
       setError(null);
@@ -156,10 +175,115 @@ export default function InstantHMRViewer() {
     setCameraMode(prev => prev === 'user' ? 'environment' : 'user');
   };
 
+  // Start recording
+  const startRecording = () => {
+    if (!streamRef.current) return;
+
+    try {
+      recordedChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(streamRef.current, {
+        mimeType: 'video/webm'
+      });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        setRecordedVideo(url);
+        setMode('analyzing');
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setMode('recording');
+    } catch (err: any) {
+      setError(`Recording failed: ${err.message}`);
+    }
+  };
+
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  // Handle video file upload
+  const handleVideoUpload = (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setRecordedVideo(url);
+      setMode('analyzing');
+    }
+  };
+
+  // Detect person bounding box using lightweight detector
+  const detectPerson = async (canvas: HTMLCanvasElement) => {
+    if (!detectorRef.current) {
+      // Fallback: use center crop
+      const cropRatio = 0.7;
+      return {
+        x: canvas.width * (1 - cropRatio) / 2,
+        y: canvas.height * (1 - cropRatio) / 2,
+        width: canvas.width * cropRatio,
+        height: canvas.height * cropRatio
+      };
+    }
+
+    try {
+      // Use MediaPipe Pose for quick person detection
+      const results = await detectorRef.current.send({ image: canvas });
+
+      if (results.poseLandmarks && results.poseLandmarks.length > 0) {
+        // Calculate bounding box from landmarks
+        const landmarks = results.poseLandmarks;
+        let minX = 1, minY = 1, maxX = 0, maxY = 0;
+
+        landmarks.forEach((lm: any) => {
+          minX = Math.min(minX, lm.x);
+          minY = Math.min(minY, lm.y);
+          maxX = Math.max(maxX, lm.x);
+          maxY = Math.max(maxY, lm.y);
+        });
+
+        // Add padding
+        const padding = 0.1;
+        const width = maxX - minX;
+        const height = maxY - minY;
+
+        return {
+          x: Math.max(0, (minX - padding * width) * canvas.width),
+          y: Math.max(0, (minY - padding * height) * canvas.height),
+          width: Math.min(canvas.width, (width * (1 + 2 * padding)) * canvas.width),
+          height: Math.min(canvas.height, (height * (1 + 2 * padding)) * canvas.height)
+        };
+      }
+    } catch (err) {
+      console.error('Detection error:', err);
+    }
+
+    // Fallback
+    const cropRatio = 0.7;
+    return {
+      x: canvas.width * (1 - cropRatio) / 2,
+      y: canvas.height * (1 - cropRatio) / 2,
+      width: canvas.width * cropRatio,
+      height: canvas.height * cropRatio
+    };
+  };
+
   // Process video frame and detect pose
   const processFrame = async () => {
     if (!videoRef.current || !canvasRef.current || !overlayRef.current) {
-      animationRef.current = requestAnimationFrame(processFrame);
+      if (modeRef.current === 'live') {
+        animationRef.current = requestAnimationFrame(processFrame);
+      }
       return;
     }
 
@@ -169,7 +293,9 @@ export default function InstantHMRViewer() {
     const ctx = canvas.getContext('2d');
     const octx = overlay.getContext('2d');
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA && ctx && octx) {
+    if (!ctx || !octx) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
       // Match canvas size to video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -182,86 +308,29 @@ export default function InstantHMRViewer() {
       try {
         setIsProcessing(true);
 
-        // In a real implementation, you would:
-        // 1. Preprocess the frame (resize to 256x256, normalize)
-        // 2. Run inference through ONNX Runtime
-        // 3. Post-process the outputs (joints_3d, vertices)
+        // Preprocess frame with person detection for speed
+        const inputTensor = await preprocessFrame(ctx, canvas);
 
-        const joints: any[] = [];
-        if (sessionRef.current) {
-            // Preprocess: Crop center, resize to 224x224, and normalize
-            const INPUT_SIZE = 224;
-            const sq_size = Math.min(canvas.width, canvas.height);
-            const sq_x1 = (canvas.width - sq_size) / 2;
-            const sq_y1 = (canvas.height - sq_size) / 2;
+        if (sessionRef.current && inputTensor) {
+          // Run inference
+          const feeds = { [sessionRef.current.inputNames[0]]: inputTensor };
+          const results = await sessionRef.current.run(feeds);
 
-            if (!tempCanvasRef.current) {
-                const temp = document.createElement('canvas');
-                temp.width = INPUT_SIZE;
-                temp.height = INPUT_SIZE;
-                tempCanvasRef.current = temp;
-            }
+          // Extract joints from output
+          const outputName = sessionRef.current.outputNames[0];
+          const outputData = results[outputName].data;
+          const joints = parseModelOutput(outputData, canvas.width, canvas.height);
 
-            const tempCtx = tempCanvasRef.current.getContext('2d', { willReadFrequently: true });
-            if (tempCtx) {
-                tempCtx.drawImage(canvas, sq_x1, sq_y1, sq_size, sq_size, 0, 0, INPUT_SIZE, INPUT_SIZE);
-                const imageData = tempCtx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE).data;
+          // Draw skeleton overlay
+          drawSkeleton(octx, joints, canvas.width, canvas.height);
 
-                const cropFloat32 = new Float32Array(3 * INPUT_SIZE * INPUT_SIZE);
-                const mean = [0.485, 0.456, 0.406];
-                const std = [0.229, 0.224, 0.225];
-
-                let p = 0;
-                for (let i = 0; i < INPUT_SIZE * INPUT_SIZE; i++) {
-                    const r = imageData[i*4] / 255.0;
-                    const g = imageData[i*4+1] / 255.0;
-                    const b = imageData[i*4+2] / 255.0;
-
-                    cropFloat32[p] = (r - mean[0]) / std[0];
-                    cropFloat32[INPUT_SIZE * INPUT_SIZE + p] = (g - mean[1]) / std[1];
-                    cropFloat32[2 * INPUT_SIZE * INPUT_SIZE + p] = (b - mean[2]) / std[2];
-                    p++;
-                }
-
-                const ort = (window as any).ort;
-
-                // BBox scale relative to the image
-                const b_scale = sq_size / Math.max(canvas.width, canvas.height);
-                const cliff_cond = new Float32Array([0, 0, b_scale]); // Center is 0,0 normalized
-
-                const feeds = {
-                    "image": new ort.Tensor('float32', cropFloat32, [1, 3, INPUT_SIZE, INPUT_SIZE]),
-                    "cliff_cond": new ort.Tensor('float32', cliff_cond, [1, 3])
-                };
-
-                const outs = await sessionRef.current.run(feeds);
-                const joints_2d_norm = outs["joints_2d"].data;
-
-                const scale = sq_size / INPUT_SIZE;
-
-                const keypoints: any[] = new Array(17).fill(null);
-                for (let i = 0; i < 70; i++) {
-                    if (!(i in MHR70_TO_COCO_MAP)) continue;
-                    const x_norm = joints_2d_norm[i * 2];
-                    const y_norm = joints_2d_norm[i * 2 + 1];
-
-                    const crop_px_x = (x_norm + 1.0) * 0.5 * INPUT_SIZE;
-                    const crop_px_y = (y_norm + 1.0) * 0.5 * INPUT_SIZE;
-
-                    const full_x = crop_px_x * scale + sq_x1;
-                    const full_y = crop_px_y * scale + sq_y1;
-
-                    keypoints[MHR70_TO_COCO_MAP[i]] = { x: full_x, y: full_y, z: 0, confidence: 1.0 };
-                }
-
-                for (let i = 0; i < 17; i++) {
-                    joints.push(keypoints[i] || { x: 0, y: 0, z: 0, confidence: 0 });
-                }
-            }
+          // Draw person bounding box
+          if (detectedPersonRef.current) {
+            octx.strokeStyle = 'rgba(100, 181, 246, 0.5)';
+            octx.lineWidth = 2;
+            octx.strokeRect(detectedPersonRef.current.x, detectedPersonRef.current.y, detectedPersonRef.current.width, detectedPersonRef.current.height);
+          }
         }
-
-        // Draw skeleton overlay
-        drawSkeleton(octx, joints, canvas.width, canvas.height);
 
         // Update FPS
         updateFPS();
@@ -272,7 +341,119 @@ export default function InstantHMRViewer() {
       }
     }
 
-    animationRef.current = requestAnimationFrame(processFrame);
+    if (modeRef.current === 'live') {
+      animationRef.current = requestAnimationFrame(processFrame);
+    }
+  };
+
+  // Analyze uploaded/recorded video
+  const analyzeVideo = async () => {
+    if (!recordedVideo || !sessionRef.current) return;
+
+    setMode('analyzing');
+    setAnalysisProgress(0);
+
+    const video = document.createElement('video');
+    video.src = recordedVideo;
+    video.muted = true;
+
+    await new Promise(resolve => {
+      video.onloadedmetadata = resolve;
+    });
+
+    const duration = video.duration;
+    const frameRate = 10; // Process 10 fps for analysis
+    const frameInterval = 1 / frameRate;
+
+    for (let time = 0; time < duration; time += frameInterval) {
+      video.currentTime = time;
+      await new Promise(resolve => {
+        video.onseeked = resolve;
+      });
+
+      // Set video ref for processing
+      videoRef.current = video;
+      await processFrame();
+
+      // Update progress
+      setAnalysisProgress((time / duration) * 100);
+    }
+
+    setAnalysisProgress(100);
+    alert('Video analysis complete!');
+  };
+
+  // Preprocess video frame for model input with person detection
+  const preprocessFrame = async (_ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    try {
+      const ort = (window as any).ort;
+      const modelSize = 256;
+
+      // Detect person bounding box for optimal cropping (much faster inference)
+      const bbox = await detectPerson(canvas);
+      detectedPersonRef.current = bbox;
+
+      // Create offscreen canvas for preprocessing
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = modelSize;
+      tempCanvas.height = modelSize;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (!tempCtx) return null;
+
+      // Draw cropped person region resized to 256x256
+      tempCtx.drawImage(
+        canvas,
+        bbox.x, bbox.y, bbox.width, bbox.height,  // Source crop (person only)
+        0, 0, modelSize, modelSize                 // Dest resize
+      );
+
+      const imageData = tempCtx.getImageData(0, 0, modelSize, modelSize);
+
+      // Convert to CHW format and normalize (ImageNet stats)
+      const pixels = imageData.data;
+      const float32Data = new Float32Array(3 * modelSize * modelSize);
+      const mean = [0.485, 0.456, 0.406];
+      const std = [0.229, 0.224, 0.225];
+
+      for (let i = 0; i < modelSize * modelSize; i++) {
+        // RGB channels
+        float32Data[i] = ((pixels[i * 4] / 255.0) - mean[0]) / std[0];  // R
+        float32Data[modelSize * modelSize + i] = ((pixels[i * 4 + 1] / 255.0) - mean[1]) / std[1];  // G
+        float32Data[2 * modelSize * modelSize + i] = ((pixels[i * 4 + 2] / 255.0) - mean[2]) / std[2];  // B
+      }
+
+      // Create tensor
+      return new ort.Tensor('float32', float32Data, [1, 3, modelSize, modelSize]);
+    } catch (err) {
+      console.error('Preprocessing error:', err);
+      return null;
+    }
+  };
+
+  // Parse model output to screen coordinates (accounting for crop)
+  const parseModelOutput = (outputData: any, screenWidth: number, screenHeight: number) => {
+    const joints = [];
+    const numJoints = 24;
+
+    // Get crop region
+    const crop = detectedPersonRef.current || { x: 0, y: 0, width: screenWidth, height: screenHeight };
+
+    // Model outputs normalized coordinates, convert to screen space
+    for (let i = 0; i < numJoints; i++) {
+      const idx = i * 3;
+      // Map from normalized [-1, 1] to crop region, then to screen
+      const normalizedX = (outputData[idx] + 1) / 2;  // Convert to [0, 1]
+      const normalizedY = (outputData[idx + 1] + 1) / 2;
+
+      joints.push({
+        x: crop.x + normalizedX * crop.width,
+        y: crop.y + normalizedY * crop.height,
+        z: outputData[idx + 2],
+        confidence: 0.9
+      });
+    }
+
+    return joints;
   };
 
   // Draw skeleton on overlay canvas
@@ -338,7 +519,7 @@ export default function InstantHMRViewer() {
 
   // Start/stop processing
   useEffect(() => {
-    if (isModelLoaded && isCameraActive) {
+    if (isModelLoaded && streamRef.current) {
       animationRef.current = requestAnimationFrame(processFrame);
     }
 
@@ -347,11 +528,11 @@ export default function InstantHMRViewer() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isModelLoaded, isCameraActive, cameraMode]);
+  }, [isModelLoaded]);
 
   // Restart camera when mode changes
   useEffect(() => {
-    if (isCameraActive) {
+    if (streamRef.current) {
       startCamera();
     }
   }, [cameraMode]);
@@ -462,7 +643,7 @@ export default function InstantHMRViewer() {
           }}>
             <div style={{ fontSize: '11px', opacity: 0.6, marginBottom: '4px' }}>MODEL STATUS</div>
             <div style={{ fontSize: '16px', fontWeight: '600' }}>
-              {isModelLoaded ? '✓ Ready' : <Loader style={{ width: '16px', height: '16px', display: 'inline-block', animation: 'spin 1s linear infinite' }} />}
+              {isModelLoaded ? '✓ Ready' : <Loader style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }} />}
             </div>
           </div>
 
@@ -472,11 +653,56 @@ export default function InstantHMRViewer() {
             padding: '12px 16px',
             borderRadius: '4px'
           }}>
-            <div style={{ fontSize: '11px', opacity: 0.6, marginBottom: '4px' }}>FRAMERATE</div>
-            <div style={{ fontSize: '16px', fontWeight: '600' }}>
-              {fps} FPS
+            <div style={{ fontSize: '11px', opacity: 0.6, marginBottom: '4px' }}>MODE</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', textTransform: 'uppercase' }}>
+              {mode === 'live' && '🔴 Live'}
+              {mode === 'recording' && '⏺️ Recording'}
+              {mode === 'analyzing' && '📊 Analysis'}
             </div>
           </div>
+
+          {mode === 'live' && (
+            <div style={{
+              background: 'rgba(0, 255, 136, 0.05)',
+              border: '1px solid rgba(0, 255, 136, 0.2)',
+              padding: '12px 16px',
+              borderRadius: '4px'
+            }}>
+              <div style={{ fontSize: '11px', opacity: 0.6, marginBottom: '4px' }}>FRAMERATE</div>
+              <div style={{ fontSize: '16px', fontWeight: '600' }}>
+                {fps} FPS
+              </div>
+            </div>
+          )}
+
+          {mode === 'analyzing' && analysisProgress > 0 && (
+            <div style={{
+              background: 'rgba(0, 255, 136, 0.05)',
+              border: '1px solid rgba(0, 255, 136, 0.2)',
+              padding: '12px 16px',
+              borderRadius: '4px',
+              gridColumn: 'span 2'
+            }}>
+              <div style={{ fontSize: '11px', opacity: 0.6, marginBottom: '8px' }}>ANALYSIS PROGRESS</div>
+              <div style={{
+                width: '100%',
+                height: '8px',
+                background: 'rgba(0, 0, 0, 0.3)',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${analysisProgress}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #00ff88, #00d4aa)',
+                  transition: 'width 0.3s'
+                }} />
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: '600', marginTop: '4px' }}>
+                {analysisProgress.toFixed(0)}%
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Error Display */}
@@ -491,7 +717,7 @@ export default function InstantHMRViewer() {
             alignItems: 'center',
             gap: '12px'
           }}>
-            <AlertCircle style={{ width: '20px', height: '20px', color: '#ff5252' }} />
+            <AlertCircle style={{ color: '#ff5252' }} />
             <div style={{ flex: 1, fontSize: '14px' }}>{error}</div>
           </div>
         )}
@@ -505,11 +731,144 @@ export default function InstantHMRViewer() {
         }}>
           <button
             onClick={startCamera}
+            disabled={!isModelLoaded || mode !== 'live'}
+            style={{
+              background: isModelLoaded && mode === 'live' ? 'rgba(0, 255, 136, 0.15)' : 'rgba(128, 128, 128, 0.15)',
+              border: `2px solid ${isModelLoaded && mode === 'live' ? '#00ff88' : '#666'}`,
+              color: isModelLoaded && mode === 'live' ? '#00ff88' : '#999',
+              padding: '12px 24px',
+              borderRadius: '4px',
+              fontSize: '14px',
+              fontWeight: '600',
+              letterSpacing: '1px',
+              cursor: isModelLoaded && mode === 'live' ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              textTransform: 'uppercase'
+            }}
+            onMouseEnter={e => {
+              if (isModelLoaded && mode === 'live') {
+                e.currentTarget.style.background = 'rgba(0, 255, 136, 0.25)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (isModelLoaded && mode === 'live') {
+                e.currentTarget.style.background = 'rgba(0, 255, 136, 0.15)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
+            }}
+          >
+            <Video />
+            Start Camera
+          </button>
+
+          <button
+            onClick={toggleCamera}
+            disabled={!streamRef.current || deviceInfo.cameras < 2 || mode !== 'live'}
+            style={{
+              background: streamRef.current && deviceInfo.cameras >= 2 && mode === 'live' ? 'rgba(100, 181, 246, 0.15)' : 'rgba(128, 128, 128, 0.15)',
+              border: `2px solid ${streamRef.current && deviceInfo.cameras >= 2 && mode === 'live' ? '#64b5f6' : '#666'}`,
+              color: streamRef.current && deviceInfo.cameras >= 2 && mode === 'live' ? '#64b5f6' : '#999',
+              padding: '12px 24px',
+              borderRadius: '4px',
+              fontSize: '14px',
+              fontWeight: '600',
+              letterSpacing: '1px',
+              cursor: streamRef.current && deviceInfo.cameras >= 2 && mode === 'live' ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              textTransform: 'uppercase'
+            }}
+            onMouseEnter={e => {
+              if (streamRef.current && deviceInfo.cameras >= 2 && mode === 'live') {
+                e.currentTarget.style.background = 'rgba(100, 181, 246, 0.25)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(100, 181, 246, 0.3)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (streamRef.current && deviceInfo.cameras >= 2 && mode === 'live') {
+                e.currentTarget.style.background = 'rgba(100, 181, 246, 0.15)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
+            }}
+          >
+            <Camera />
+            Switch ({cameraMode === 'user' ? 'Front' : 'Rear'})
+          </button>
+
+          {mode === 'live' && streamRef.current && (
+            <button
+              onClick={startRecording}
+              style={{
+                background: 'rgba(255, 82, 82, 0.15)',
+                border: '2px solid #ff5252',
+                color: '#ff5252',
+                padding: '12px 24px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '600',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase'
+              }}
+            >
+              ● Record
+            </button>
+          )}
+
+          {mode === 'recording' && (
+            <button
+              onClick={stopRecording}
+              style={{
+                background: 'rgba(255, 82, 82, 0.25)',
+                border: '2px solid #ff5252',
+                color: '#ff5252',
+                padding: '12px 24px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '600',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+                animation: 'pulse 1s ease-in-out infinite'
+              }}
+            >
+              ■ Stop Recording
+            </button>
+          )}
+
+          <input
+            ref={videoFileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleVideoUpload}
+            style={{ display: 'none' }}
+          />
+
+          <button
+            onClick={() => videoFileInputRef.current?.click()}
             disabled={!isModelLoaded}
             style={{
-              background: isModelLoaded ? 'rgba(0, 255, 136, 0.15)' : 'rgba(128, 128, 128, 0.15)',
-              border: `2px solid ${isModelLoaded ? '#00ff88' : '#666'}`,
-              color: isModelLoaded ? '#00ff88' : '#999',
+              background: isModelLoaded ? 'rgba(156, 39, 176, 0.15)' : 'rgba(128, 128, 128, 0.15)',
+              border: `2px solid ${isModelLoaded ? '#9c27b0' : '#666'}`,
+              color: isModelLoaded ? '#9c27b0' : '#999',
               padding: '12px 24px',
               borderRadius: '4px',
               fontSize: '14px',
@@ -523,59 +882,63 @@ export default function InstantHMRViewer() {
               transition: 'all 0.2s',
               textTransform: 'uppercase'
             }}
-            onMouseEnter={e => {
-              if (isModelLoaded) {
-                e.currentTarget.style.background = 'rgba(0, 255, 136, 0.25)';
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(0, 255, 136, 0.3)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (isModelLoaded) {
-                e.currentTarget.style.background = 'rgba(0, 255, 136, 0.15)';
-                e.currentTarget.style.boxShadow = 'none';
-              }
-            }}
           >
-            <Video style={{ width: '18px', height: '18px' }} />
-            Start Camera
+            📁 Upload Video
           </button>
 
-          <button
-            onClick={toggleCamera}
-            disabled={!streamRef.current || deviceInfo.cameras < 2}
-            style={{
-              background: streamRef.current && deviceInfo.cameras >= 2 ? 'rgba(100, 181, 246, 0.15)' : 'rgba(128, 128, 128, 0.15)',
-              border: `2px solid ${streamRef.current && deviceInfo.cameras >= 2 ? '#64b5f6' : '#666'}`,
-              color: streamRef.current && deviceInfo.cameras >= 2 ? '#64b5f6' : '#999',
-              padding: '12px 24px',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontWeight: '600',
-              letterSpacing: '1px',
-              cursor: streamRef.current && deviceInfo.cameras >= 2 ? 'pointer' : 'not-allowed',
-              fontFamily: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s',
-              textTransform: 'uppercase'
-            }}
-            onMouseEnter={e => {
-              if (streamRef.current && deviceInfo.cameras >= 2) {
-                e.currentTarget.style.background = 'rgba(100, 181, 246, 0.25)';
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(100, 181, 246, 0.3)';
-              }
-            }}
-            onMouseLeave={e => {
-              if (streamRef.current && deviceInfo.cameras >= 2) {
-                e.currentTarget.style.background = 'rgba(100, 181, 246, 0.15)';
-                e.currentTarget.style.boxShadow = 'none';
-              }
-            }}
-          >
-            <Camera style={{ width: '18px', height: '18px' }} />
-            Switch Camera ({cameraMode === 'user' ? 'Front' : 'Rear'})
-          </button>
+          {mode === 'analyzing' && recordedVideo && (
+            <button
+              onClick={analyzeVideo}
+              style={{
+                background: 'rgba(255, 193, 7, 0.15)',
+                border: '2px solid #ffc107',
+                color: '#ffc107',
+                padding: '12px 24px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '600',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase'
+              }}
+            >
+              ▶ Analyze Video
+            </button>
+          )}
+
+          {mode === 'analyzing' && (
+            <button
+              onClick={() => {
+                setMode('live');
+                setRecordedVideo(null);
+                setAnalysisProgress(0);
+              }}
+              style={{
+                background: 'rgba(100, 181, 246, 0.15)',
+                border: '2px solid #64b5f6',
+                color: '#64b5f6',
+                padding: '12px 24px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '600',
+                letterSpacing: '1px',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase'
+              }}
+            >
+              ← Back to Live
+            </button>
+          )}
         </div>
 
         {/* Video Display */}
@@ -653,7 +1016,7 @@ export default function InstantHMRViewer() {
               flexDirection: 'column',
               gap: '16px'
             }}>
-              <Square style={{ width: '64px', height: '64px', color: '#00ff88', opacity: 0.5 }} />
+              <Square style={{ color: '#00ff88', opacity: 0.5, width: '64px', height: '64px' }} />
               <div style={{ fontSize: '16px', opacity: 0.7 }}>
                 Click "Start Camera" to begin
               </div>
@@ -675,11 +1038,16 @@ export default function InstantHMRViewer() {
             🛠️ SETUP INSTRUCTIONS
           </div>
           <ol style={{ margin: 0, paddingLeft: '20px' }}>
-            <li>Export InstantHMR model to ONNX format (see code comments)</li>
             <li>Include ONNX Runtime Web: <code style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '2px 6px', borderRadius: '2px' }}>&lt;script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"&gt;&lt;/script&gt;</code></li>
-            <li>Host your ONNX model file and update MODEL_URL in the code</li>
-            <li>Current demo shows synthetic pose data - replace with actual inference</li>
+            <li>Optional - Include MediaPipe Pose for person detection (speeds up inference): <code style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '2px 6px', borderRadius: '2px' }}>&lt;script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"&gt;&lt;/script&gt;</code></li>
+            <li>InstantHMR model loads automatically from HuggingFace</li>
+            <li>Live mode: Click "Start Camera" → pose detection runs in real-time</li>
+            <li>Record mode: "Record" button → "Stop Recording" → "Analyze Video"</li>
+            <li>Upload mode: "Upload Video" → select file → "Analyze Video"</li>
           </ol>
+          <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '4px', fontSize: '12px' }}>
+            <strong>Performance Optimization:</strong> Person detection crops frame to person region before InstantHMR inference, significantly improving speed. Falls back to center crop if MediaPipe unavailable.
+          </div>
         </div>
 
         {/* Skeleton Legend */}
