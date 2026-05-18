@@ -92,7 +92,7 @@ export class InferenceEngine {
           });
         const device = this.isWebGPUSupported ? "webgpu" : "wasm";
 
-        let detectorConfig: any = {
+        const detectorConfig: any = {
           backend: device,
         };
 
