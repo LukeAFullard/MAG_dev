@@ -1,9 +1,0 @@
---- src/utils/autoClip.ts
-+++ src/utils/autoClip.ts
-@@ -8,7 +8,6 @@
-   category: string;
-   facingCamera?: boolean;
-   poses?: any[]; // Keep flexible
--  depths?: any[];
-   landingMetrics?: LandingMetrics;
- }
