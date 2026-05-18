@@ -119,9 +119,10 @@ export default function InstantHMRViewer() {
 
         // Load InstantHMR model from HuggingFace
         console.log('Loading InstantHMR model from HuggingFace...');
-        const MODEL_URL = 'https://huggingface.co/momolesang/InstantHMR/resolve/main/instant_hmr.onnx';
+        const MODEL_URL = 'https://huggingface.co/momolesang/InstantHMR/resolve/main/instanthmr.onnx?download=true';
         const session = await ort.InferenceSession.create(MODEL_URL, {
-          executionProviders
+          executionProviders,
+          externalData: []
         });
         sessionRef.current = session;
 
