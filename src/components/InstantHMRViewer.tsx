@@ -393,6 +393,7 @@ export default function InstantHMRViewer() {
 
   // Analyze uploaded/recorded video
   const analyzeVideo = async () => {
+    console.log("analyzeVideo called", { recordedVideo, hasSession: !!sessionRef.current });
     if (!recordedVideo || !sessionRef.current) return;
 
     setMode('analyzing');
@@ -402,20 +403,75 @@ export default function InstantHMRViewer() {
     const video = document.createElement('video');
     video.src = recordedVideo;
     video.muted = true;
+    video.playsInline = true;
 
+    console.log("Waiting for onloadedmetadata");
     await new Promise(resolve => {
       video.onloadedmetadata = resolve;
+      // also handle errors just in case
+      video.onerror = (e) => {
+          console.error("Video error in analyzeVideo:", e);
+          resolve(e);
+      };
     });
 
-    const duration = video.duration;
+    console.log("metadata loaded, duration:", video.duration);
+
+    // Some browsers return Infinity or NaN for blob URL durations
+    let duration = video.duration;
+    if (!isFinite(duration) || isNaN(duration)) {
+        console.warn("Duration is not finite, setting to 1 second for test");
+        // Fallback for MediaRecorder blobs in some browsers
+        video.currentTime = 1e9;
+        await new Promise(r => { video.onseeked = r; });
+        duration = video.currentTime;
+        video.currentTime = 0;
+        await new Promise(r => { video.onseeked = r; });
+        console.log("calculated duration:", duration);
+    }
+
+    if (duration === 0 || !isFinite(duration)) {
+       console.error("Could not determine duration, aborting analysis");
+       setMode('live');
+       return;
+    }
+
     const frameRate = 10; // Process 10 fps for analysis
     const frameInterval = 1 / frameRate;
 
     for (let time = 0; time < duration; time += frameInterval) {
-      video.currentTime = time;
-      await new Promise(resolve => {
-        video.onseeked = resolve;
-      });
+      if (Math.abs(video.currentTime - time) > 0.01) {
+        video.currentTime = time;
+        await new Promise(resolve => {
+          const handler = () => {
+             video.removeEventListener('seeked', handler);
+             resolve(true);
+          };
+          video.addEventListener('seeked', handler);
+          setTimeout(() => {
+             video.removeEventListener('seeked', handler);
+             resolve(false);
+          }, 1000); // 1s timeout
+        });
+      }
+
+      // Ensure readyState is high enough
+      if (video.readyState < 2) { // HAVE_CURRENT_DATA
+        await new Promise(resolve => {
+            const handler = () => {
+                video.removeEventListener('loadeddata', handler);
+                video.removeEventListener('canplay', handler);
+                resolve(true);
+            };
+            video.addEventListener('loadeddata', handler);
+            video.addEventListener('canplay', handler);
+            setTimeout(() => {
+                video.removeEventListener('loadeddata', handler);
+                video.removeEventListener('canplay', handler);
+                resolve(false);
+            }, 1000);
+        });
+      }
 
       // Pass video directly for processing
       const joints = await processFrame(video);
@@ -1112,7 +1168,14 @@ export default function InstantHMRViewer() {
           {/* Hidden video element */}
           <video
             ref={videoRef}
-            style={{ display: 'none' }}
+            style={{
+              display: mode === 'live' || mode === 'recording' ? 'block' : 'none',
+              width: '100%',
+              height: 'auto',
+              maxHeight: '70vh',
+              objectFit: 'contain'
+            }}
+            autoPlay
             playsInline
             muted
           />
