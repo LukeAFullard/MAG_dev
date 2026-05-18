@@ -139,6 +139,8 @@ export default function InstantHMRViewer() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
+        // Force a re-render so the UI updates and processFrame gets triggered
+        setCameraMode(prev => prev);
       }
 
       setError(null);
