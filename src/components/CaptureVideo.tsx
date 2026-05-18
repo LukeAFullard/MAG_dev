@@ -2,13 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadIcon, FileVideoIcon, SwitchCameraIcon } from './LucideIcons';
 
 interface CaptureVideoProps {
-  onVideoCaptured: (file: File, apparatus: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h') => void;
+  onVideoCaptured: (file: File, apparatus: string, analysisMode: 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h' | 'instanthmr') => void;
 }
 
 const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
   const [mode, setMode] = useState<'upload' | 'record'>('upload');
   const [apparatus, setApparatus] = useState<string>('Floor');
-  const [analysisMode, setAnalysisMode] = useState<'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h'>('rtmpose-m');
+  const [analysisMode, setAnalysisMode] = useState<'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h' | 'instanthmr'>('rtmpose-m');
   const [customSkills, setCustomSkills] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -189,7 +189,7 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
           <select
             id="mode-input"
             value={analysisMode}
-            onChange={(e) => setAnalysisMode(e.target.value as 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h')}
+            onChange={(e) => setAnalysisMode(e.target.value as 'rtmpose-s' | 'rtmpose-m' | 'rtmpose-l' | 'vitpose-s' | 'vitpose-b' | 'vitpose-l' | 'vitpose-h' | 'instanthmr')}
             className="text-sm border-none bg-transparent focus:ring-0 text-slate-900 font-semibold outline-none"
           >
             <optgroup label="RTMPose (End-to-End)">
@@ -202,6 +202,9 @@ const CaptureVideo: React.FC<CaptureVideoProps> = ({ onVideoCaptured }) => {
               <option value="vitpose-b">ViTPose Base</option>
               <option value="vitpose-l">ViTPose Large</option>
               <option value="vitpose-h">ViTPose Huge</option>
+            </optgroup>
+            <optgroup label="3D Recovery">
+              <option value="instanthmr">InstantHMR (3D Mesh)</option>
             </optgroup>
           </select>
         </div>

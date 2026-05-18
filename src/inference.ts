@@ -82,7 +82,7 @@ export class InferenceEngine {
     model: string,
     onProgress?: (data: any) => void,
   ): Promise<any> {
-    if (task === "pose-estimation" && !model.startsWith('vitpose-')) {
+    if (task === "pose-estimation" && !model.startsWith('vitpose-') && model !== 'instanthmr') {
       const key = `${task}-${model}`;
       if (!this.poseDetectors.has(key)) {
         if (onProgress)
@@ -118,7 +118,7 @@ export class InferenceEngine {
     input: any,
     transfer?: Transferable[],
   ): Promise<any> {
-    if (task === "pose-estimation" && !model.startsWith('vitpose-')) {
+    if (task === "pose-estimation" && !model.startsWith('vitpose-') && model !== 'instanthmr') {
       const key = `${task}-${model}`;
       const detector = this.poseDetectors.get(key);
       if (!detector)
@@ -164,7 +164,7 @@ export class InferenceEngine {
 
     // For vitpose-, we need to send ImageData since ImageBitmap can't be handled by the worker if not converted properly
     // Wait, we can extract ImageData here if input is ImageBitmap
-    if (task === "pose-estimation" && model.startsWith('vitpose-')) {
+    if (task === "pose-estimation" && (model.startsWith('vitpose-') || model === 'instanthmr')) {
         let imageData;
         if (input instanceof ImageBitmap) {
             const width = input.width;
