@@ -87,6 +87,8 @@ export default function InstantHMRViewer() {
 
         const ort = (window as any).ort;
 
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.26.0/dist/';
+
         // Set execution provider to WebGPU if available, fallback to WASM
         const executionProviders = deviceInfo.webgpu
           ? ['webgpu', 'wasm']
