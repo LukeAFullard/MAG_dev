@@ -49,6 +49,7 @@ export default function InstantHMRViewer() {
   const [error, setError] = useState<string | null>(null);
   const [fps, setFps] = useState(0);
   const [deviceInfo, setDeviceInfo] = useState({ webgpu: false, cameras: 0 });
+  const [isCameraActive, setIsCameraActive] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -123,6 +124,7 @@ export default function InstantHMRViewer() {
       // Stop existing stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
+        setIsCameraActive(false);
       }
 
       const constraints = {
@@ -139,8 +141,7 @@ export default function InstantHMRViewer() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
-        // Force a re-render so the UI updates and processFrame gets triggered
-        setCameraMode(prev => prev);
+        setIsCameraActive(true);
       }
 
       setError(null);
@@ -323,7 +324,7 @@ export default function InstantHMRViewer() {
 
   // Start/stop processing
   useEffect(() => {
-    if (isModelLoaded && streamRef.current) {
+    if (isModelLoaded && isCameraActive) {
       animationRef.current = requestAnimationFrame(processFrame);
     }
 
@@ -332,11 +333,11 @@ export default function InstantHMRViewer() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isModelLoaded, streamRef.current]);
+  }, [isModelLoaded, isCameraActive, cameraMode]);
 
   // Restart camera when mode changes
   useEffect(() => {
-    if (streamRef.current) {
+    if (isCameraActive) {
       startCamera();
     }
   }, [cameraMode]);
