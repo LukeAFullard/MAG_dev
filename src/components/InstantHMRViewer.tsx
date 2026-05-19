@@ -88,6 +88,7 @@ export default function InstantHMRViewer() {
   const [analysisProgress, setAnalysisProgress] = useState(0);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const playbackVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -555,9 +556,9 @@ export default function InstantHMRViewer() {
   };
 
   // Play analyzed video with skeleton overlay
-  const playAnalyzedVideo = () => {
+  const playAnalyzedVideo = async () => {
     if (isPlaying) return; // Guard against multiple clicks
-    if (!recordedVideo || !videoRef.current || !canvasRef.current || !overlayRef.current) return;
+    if (!recordedVideo || !playbackVideoRef.current || !canvasRef.current || !overlayRef.current) return;
 
     const canvas = canvasRef.current;
     const overlay = overlayRef.current;
@@ -566,18 +567,16 @@ export default function InstantHMRViewer() {
 
     if (!ctx || !octx) return;
 
-    // Use a separate video element to prevent interfering with main ref stream if any
-    const playbackVideo = document.createElement('video');
+    const playbackVideo = playbackVideoRef.current;
     playbackVideo.src = recordedVideo;
-    playbackVideo.muted = true;
-    playbackVideo.playsInline = true;
+    playbackVideo.load(); // Ensure video is reloaded
 
     playbackVideo.onloadedmetadata = () => {
       canvas.width = playbackVideo.videoWidth;
       canvas.height = playbackVideo.videoHeight;
       overlay.width = playbackVideo.videoWidth;
       overlay.height = playbackVideo.videoHeight;
-      playbackVideo.play();
+      playbackVideo.play().catch(e => console.error("Playback failed", e));
     };
 
     const drawFrame = () => {
@@ -1259,6 +1258,14 @@ export default function InstantHMRViewer() {
               objectFit: 'contain'
             }}
             autoPlay
+            playsInline
+            muted
+          />
+
+          {/* Hidden playback video element */}
+          <video
+            ref={playbackVideoRef}
+            style={{ display: 'none' }}
             playsInline
             muted
           />
