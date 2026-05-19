@@ -13,25 +13,60 @@ import { CameraIcon as Camera, FileVideoIcon as Video, SquareIcon as Square, Ale
  * <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
  */
 
-// SMPL skeleton connections (simplified 24-joint skeleton)
+// MHR70 skeleton connections (70-joint skeleton)
 const SKELETON_CONNECTIONS = [
-  [0, 1], [0, 2], [0, 3],  // Pelvis to legs and spine
-  [1, 4], [2, 5],          // Upper legs
-  [4, 7], [5, 8],          // Lower legs
-  [7, 10], [8, 11],        // Feet
-  [3, 6], [6, 9],          // Spine to chest to head
-  [9, 12], [9, 13], [9, 14], // Head and shoulders
-  [12, 15], [13, 16],      // Upper arms
-  [15, 18], [16, 19],      // Lower arms
-  [18, 20], [19, 21],      // Hands
-  [20, 22], [21, 23]       // Hand extensions
+  // Head <-> neck
+  [0, 69],
+  // Torso
+  [69, 5], [69, 6],
+  [5, 9], [6, 10], [9, 10],
+  // Arms
+  [5, 7], [7, 62],
+  [6, 8], [8, 41],
+  // Legs
+  [9, 11], [11, 13], [13, 17],
+  [10, 12], [12, 14], [14, 20],
+  // Left hand fan
+  [62, 42], [62, 46], [62, 50], [62, 54], [62, 58],
+  // Right hand fan
+  [41, 21], [41, 25], [41, 29], [41, 33], [41, 37],
 ];
 
 const JOINT_NAMES = [
-  'Pelvis', 'L_Hip', 'R_Hip', 'Spine1', 'L_Knee', 'R_Knee', 'Spine2',
-  'L_Ankle', 'R_Ankle', 'Spine3', 'L_Foot', 'R_Foot', 'Neck',
-  'L_Collar', 'R_Collar', 'Head', 'L_Shoulder', 'R_Shoulder',
-  'L_Elbow', 'R_Elbow', 'L_Wrist', 'R_Wrist', 'L_Hand', 'R_Hand'
+  "nose", "left_eye", "right_eye", "left_ear", "right_ear",          // 0-4
+  "left_shoulder", "right_shoulder",                                  // 5-6
+  "left_elbow", "right_elbow",                                        // 7-8
+  "left_hip", "right_hip",                                            // 9-10
+  "left_knee", "right_knee",                                          // 11-12
+  "left_ankle", "right_ankle",                                        // 13-14
+  "left_big_toe_tip", "left_small_toe_tip", "left_heel",              // 15-17
+  "right_big_toe_tip", "right_small_toe_tip", "right_heel",           // 18-20
+  "right_thumb_tip", "right_thumb_first_joint",
+  "right_thumb_second_joint", "right_thumb_third_joint",              // 21-24
+  "right_index_tip", "right_index_first_joint",
+  "right_index_second_joint", "right_index_third_joint",              // 25-28
+  "right_middle_tip", "right_middle_first_joint",
+  "right_middle_second_joint", "right_middle_third_joint",            // 29-32
+  "right_ring_tip", "right_ring_first_joint",
+  "right_ring_second_joint", "right_ring_third_joint",                // 33-36
+  "right_pinky_tip", "right_pinky_first_joint",
+  "right_pinky_second_joint", "right_pinky_third_joint",              // 37-40
+  "right_wrist",                                                      // 41
+  "left_thumb_tip", "left_thumb_first_joint",
+  "left_thumb_second_joint", "left_thumb_third_joint",                // 42-45
+  "left_index_tip", "left_index_first_joint",
+  "left_index_second_joint", "left_index_third_joint",                // 46-49
+  "left_middle_tip", "left_middle_first_joint",
+  "left_middle_second_joint", "left_middle_third_joint",              // 50-53
+  "left_ring_tip", "left_ring_first_joint",
+  "left_ring_second_joint", "left_ring_third_joint",                  // 54-57
+  "left_pinky_tip", "left_pinky_first_joint",
+  "left_pinky_second_joint", "left_pinky_third_joint",                // 58-61
+  "left_wrist",                                                       // 62
+  "left_olecranon", "right_olecranon",                                // 63-64
+  "left_cubital_fossa", "right_cubital_fossa",                        // 65-66
+  "left_acromion", "right_acromion",                                  // 67-68
+  "neck",                                                             // 69
 ];
 
 export default function InstantHMRViewer() {
@@ -652,7 +687,7 @@ export default function InstantHMRViewer() {
   // Parse model output to screen coordinates (accounting for crop)
   const parseModelOutput = (results: any, screenWidth: number, screenHeight: number) => {
     const joints = [];
-    const numJoints = 24;
+    const numJoints = 70;
 
     let joints2D = results['joints_2d'] ? results['joints_2d'].data : null;
     let joints3D = results['joints_3d'] ? results['joints_3d'].data : null;
@@ -717,22 +752,17 @@ export default function InstantHMRViewer() {
 
     // Draw joints
     ctx.shadowBlur = 15;
-    joints.forEach((joint, idx) => {
+    joints.forEach((joint) => {
       ctx.globalAlpha = joint.confidence;
 
-      // Color based on depth
-      const hue = 120 + (joint.z / 100) * 60;
+      // Color based on depth: z is typically in meters around 0 for body-centered,
+      // mapping roughly -1m to 1m into hue range.
+      const hue = 120 + Math.max(-60, Math.min(60, joint.z * 100)); // Map roughly -0.6m to +0.6m to colors
       ctx.fillStyle = `hsl(${hue}, 100%, 60%)`;
 
       ctx.beginPath();
-      ctx.arc(joint.x, joint.y, 6, 0, Math.PI * 2);
+      ctx.arc(joint.x, joint.y, 4, 0, Math.PI * 2);
       ctx.fill();
-
-      // Draw joint index for debugging
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '10px monospace';
-      ctx.globalAlpha = 0.7;
-      ctx.fillText(idx.toString(), joint.x + 8, joint.y + 4);
     });
 
     ctx.globalAlpha = 1;
