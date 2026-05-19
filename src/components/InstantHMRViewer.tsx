@@ -472,12 +472,19 @@ export default function InstantHMRViewer() {
     video.muted = true;
     video.playsInline = true;
 
+    // Mount to DOM to force the browser to render frames, preventing requestVideoFrameCallback deadlocks
+    video.style.position = 'absolute';
+    video.style.opacity = '0';
+    video.style.pointerEvents = 'none';
+    document.body.appendChild(video);
+
     console.log("Waiting for onloadedmetadata");
     await new Promise(resolve => {
       video.onloadedmetadata = resolve;
       // also handle errors just in case
       video.onerror = (e) => {
           console.error("Video error in analyzeVideo:", e);
+          document.body.removeChild(video);
           resolve(e);
       };
     });
@@ -499,6 +506,7 @@ export default function InstantHMRViewer() {
 
     if (duration === 0 || !isFinite(duration)) {
        console.error("Could not determine duration, aborting analysis");
+       document.body.removeChild(video);
        setMode('live');
        return;
     }
@@ -512,7 +520,6 @@ export default function InstantHMRViewer() {
         await new Promise(resolve => {
           const handler = () => {
              video.removeEventListener('seeked', handler);
-
              // Wait for the next paint frame so the video element actually displays the seeked frame
              if ('requestVideoFrameCallback' in video) {
                  (video as any).requestVideoFrameCallback(() => resolve(true));
@@ -567,6 +574,9 @@ export default function InstantHMRViewer() {
       // Update progress
       setAnalysisProgress((time / duration) * 100);
     }
+
+    // Cleanup DOM
+    document.body.removeChild(video);
 
     setAnalysisProgress(100);
     setMode('playback');
