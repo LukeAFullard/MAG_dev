@@ -512,13 +512,28 @@ export default function InstantHMRViewer() {
         await new Promise(resolve => {
           const handler = () => {
              video.removeEventListener('seeked', handler);
-             resolve(true);
+
+             // Wait for the next paint frame so the video element actually displays the seeked frame
+             if ('requestVideoFrameCallback' in video) {
+                 (video as any).requestVideoFrameCallback(() => resolve(true));
+             } else {
+                 requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
+             }
           };
           video.addEventListener('seeked', handler);
           setTimeout(() => {
              video.removeEventListener('seeked', handler);
              resolve(false);
           }, 1000); // 1s timeout
+        });
+      } else if (time === 0) {
+        // Even for time 0, ensure it's painted
+        await new Promise(resolve => {
+             if ('requestVideoFrameCallback' in video) {
+                 (video as any).requestVideoFrameCallback(() => resolve(true));
+             } else {
+                 requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
+             }
         });
       }
 
@@ -542,9 +557,11 @@ export default function InstantHMRViewer() {
 
       // Pass video directly for processing
       const joints = await processFrame(video);
-      console.log("Analyzing time", time, "got joints?", !!joints);
+      // Use the actual current time from the video, as keyframes might snap it slightly off nominal time
+      const actualTime = video.currentTime;
+      console.log("Analyzing nominal time", time, "actual time", actualTime, "got joints?", !!joints);
       if (joints) {
-        analyzedPosesRef.current.push({ time, joints });
+        analyzedPosesRef.current.push({ time: actualTime, joints });
       }
 
       // Update progress
