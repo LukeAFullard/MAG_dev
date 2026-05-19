@@ -512,28 +512,13 @@ export default function InstantHMRViewer() {
         await new Promise(resolve => {
           const handler = () => {
              video.removeEventListener('seeked', handler);
-
-             // Wait for the next paint frame so the video element actually displays the seeked frame
-             if ('requestVideoFrameCallback' in video) {
-                 (video as any).requestVideoFrameCallback(() => resolve(true));
-             } else {
-                 requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
-             }
+             resolve(true);
           };
           video.addEventListener('seeked', handler);
           setTimeout(() => {
              video.removeEventListener('seeked', handler);
              resolve(false);
           }, 1000); // 1s timeout
-        });
-      } else if (time === 0) {
-        // Even for time 0, ensure it's painted
-        await new Promise(resolve => {
-             if ('requestVideoFrameCallback' in video) {
-                 (video as any).requestVideoFrameCallback(() => resolve(true));
-             } else {
-                 requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
-             }
         });
       }
 
