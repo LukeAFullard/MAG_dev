@@ -231,15 +231,19 @@ export default function InstantHMRViewer() {
 
   // Detect person bounding box using lightweight detector
   const detectPerson = async (canvas: HTMLCanvasElement) => {
-    if (!detectorRef.current) {
-      // Fallback: use center crop
-      const cropRatio = 0.7;
+    const getFallbackCrop = () => {
+      const size = Math.min(canvas.width, canvas.height) * 0.7;
       return {
-        x: canvas.width * (1 - cropRatio) / 2,
-        y: canvas.height * (1 - cropRatio) / 2,
-        width: canvas.width * cropRatio,
-        height: canvas.height * cropRatio
+        x: (canvas.width - size) / 2,
+        y: (canvas.height - size) / 2,
+        width: size,
+        height: size,
+        originalMaxDim: size
       };
+    };
+
+    if (!detectorRef.current) {
+      return getFallbackCrop();
     }
 
     try {
@@ -259,37 +263,32 @@ export default function InstantHMRViewer() {
             });
 
             // Add padding
-            const padding = 0.1;
-            const width = maxX - minX;
-            const height = maxY - minY;
+            const width = (maxX - minX) * canvas.width;
+            const height = (maxY - minY) * canvas.height;
+            const cx = (minX + maxX) * 0.5 * canvas.width;
+            const cy = (minY + maxY) * 0.5 * canvas.height;
+
+            // Match worker.ts exactly: max dim expanded by 1.2
+            const maxDim = Math.max(width, height);
+            const sq_size = maxDim * 1.2;
+            const half = sq_size / 2.0;
 
             resolve({
-              x: Math.max(0, (minX - padding * width) * canvas.width),
-              y: Math.max(0, (minY - padding * height) * canvas.height),
-              width: Math.min(canvas.width, (width * (1 + 2 * padding)) * canvas.width),
-              height: Math.min(canvas.height, (height * (1 + 2 * padding)) * canvas.height)
+              x: cx - half,
+              y: cy - half,
+              width: sq_size,
+              height: sq_size,
+              originalMaxDim: maxDim
             });
           } else {
              // Fallback
-            const cropRatio = 0.7;
-            resolve({
-              x: canvas.width * (1 - cropRatio) / 2,
-              y: canvas.height * (1 - cropRatio) / 2,
-              width: canvas.width * cropRatio,
-              height: canvas.height * cropRatio
-            });
+             resolve(getFallbackCrop());
           }
         });
 
         detectorRef.current.send({ image: canvas }).catch((err: any) => {
             console.error('Detection send error:', err);
-            const cropRatio = 0.7;
-            resolve({
-              x: canvas.width * (1 - cropRatio) / 2,
-              y: canvas.height * (1 - cropRatio) / 2,
-              width: canvas.width * cropRatio,
-              height: canvas.height * cropRatio
-            });
+            resolve(getFallbackCrop());
         });
       });
     } catch (err) {
@@ -297,13 +296,7 @@ export default function InstantHMRViewer() {
     }
 
     // Fallback
-    const cropRatio = 0.7;
-    return {
-      x: canvas.width * (1 - cropRatio) / 2,
-      y: canvas.height * (1 - cropRatio) / 2,
-      width: canvas.width * cropRatio,
-      height: canvas.height * cropRatio
-    };
+    return getFallbackCrop();
   };
 
   // Process video frame and detect pose
@@ -311,7 +304,11 @@ export default function InstantHMRViewer() {
     const video = sourceVideo || videoRef.current;
     if (!video || !canvasRef.current || !overlayRef.current) {
       if (modeRef.current === 'live' || modeRef.current === 'recording') {
-        animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
+        setTimeout(() => {
+          if (modeRef.current === 'live' || modeRef.current === 'recording') {
+            animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
+          }
+        }, 50);
       }
       return;
     }
@@ -324,11 +321,15 @@ export default function InstantHMRViewer() {
     if (!ctx || !octx) return;
 
     if (video.readyState >= video.HAVE_CURRENT_DATA) {
-      // Match canvas size to video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
+      // Match canvas size to video ONLY if different to avoid costly reallocations
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+      if (overlay.width !== video.videoWidth || overlay.height !== video.videoHeight) {
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+      }
 
       // Draw video frame
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -347,20 +348,24 @@ export default function InstantHMRViewer() {
           if (sessionRef.current.inputNames.length > 1) {
              const cliffCondName = sessionRef.current.inputNames[1];
              const ort = (window as any).ort;
-             // Calculate center and scale from bbox
-             // This is a simple approximation; real InstantHMR might want normalized values
-             const cx = detectedPersonRef.current ? detectedPersonRef.current.x + detectedPersonRef.current.width / 2 : canvas.width / 2;
-             const cy = detectedPersonRef.current ? detectedPersonRef.current.y + detectedPersonRef.current.height / 2 : canvas.height / 2;
-             const scale = detectedPersonRef.current ? Math.max(detectedPersonRef.current.width, detectedPersonRef.current.height) / 200 : 1.0;
-             feeds[cliffCondName] = new ort.Tensor('float32', new Float32Array([cx, cy, scale]), [1, 3]);
+
+             // Calculate center and scale exactly as worker.ts
+             const crop = detectedPersonRef.current || { x: 0, y: 0, width: canvas.width, height: canvas.height, originalMaxDim: Math.max(canvas.width, canvas.height) };
+             const cx = crop.x + crop.width / 2;
+             const cy = crop.y + crop.height / 2;
+
+             const cx_norm = 2.0 * (cx / canvas.width) - 1.0;
+             const cy_norm = 2.0 * (cy / canvas.height) - 1.0;
+             // originalMaxDim is max(bw, bh) before the 1.2x expand
+             const b_scale = crop.originalMaxDim / Math.max(canvas.width, canvas.height);
+
+             feeds[cliffCondName] = new ort.Tensor('float32', new Float32Array([cx_norm, cy_norm, b_scale]), [1, 3]);
           }
 
           const results = await sessionRef.current.run(feeds);
 
           // Extract joints from output
-          const outputName = sessionRef.current.outputNames[0];
-          const outputData = results[outputName].data;
-          const joints = parseModelOutput(outputData, canvas.width, canvas.height);
+          const joints = parseModelOutput(results, canvas.width, canvas.height);
 
           // Draw skeleton overlay
           drawSkeleton(octx, joints, canvas.width, canvas.height);
@@ -387,7 +392,11 @@ export default function InstantHMRViewer() {
     }
 
     if (modeRef.current === 'live' || modeRef.current === 'recording') {
-      animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
+      setTimeout(() => {
+          if (modeRef.current === 'live' || modeRef.current === 'recording') {
+              animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
+          }
+      }, 50);
     }
   };
 
@@ -584,7 +593,11 @@ export default function InstantHMRViewer() {
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) return null;
 
-      // Draw cropped person region resized to 256x256
+      // Fill black to handle out of bounds gracefully like worker.ts
+      tempCtx.fillStyle = 'black';
+      tempCtx.fillRect(0, 0, modelSize, modelSize);
+
+      // Draw cropped person region resized to modelSize x modelSize
       tempCtx.drawImage(
         canvas,
         bbox.x, bbox.y, bbox.width, bbox.height,  // Source crop (person only)
@@ -615,24 +628,31 @@ export default function InstantHMRViewer() {
   };
 
   // Parse model output to screen coordinates (accounting for crop)
-  const parseModelOutput = (outputData: any, screenWidth: number, screenHeight: number) => {
+  const parseModelOutput = (results: any, screenWidth: number, screenHeight: number) => {
     const joints = [];
     const numJoints = 24;
 
+    const joints2D = results['joints_2d'] ? results['joints_2d'].data : null;
+    const joints3D = results['joints_3d'] ? results['joints_3d'].data : null;
+
+    if (!joints2D) {
+       console.error("Could not find joints_2d in model output");
+       return [];
+    }
+
     // Get crop region
-    const crop = detectedPersonRef.current || { x: 0, y: 0, width: screenWidth, height: screenHeight };
+    const crop = detectedPersonRef.current || { x: 0, y: 0, width: screenWidth, height: screenHeight, originalMaxDim: Math.max(screenWidth, screenHeight) };
 
     // Model outputs normalized coordinates, convert to screen space
     for (let i = 0; i < numJoints; i++) {
-      const idx = i * 3;
       // Map from normalized [-1, 1] to crop region, then to screen
-      const normalizedX = (outputData[idx] + 1) / 2;  // Convert to [0, 1]
-      const normalizedY = (outputData[idx + 1] + 1) / 2;
+      const normalizedX = (joints2D[i * 2] + 1) / 2;  // Convert to [0, 1]
+      const normalizedY = (joints2D[i * 2 + 1] + 1) / 2;
 
       joints.push({
         x: crop.x + normalizedX * crop.width,
         y: crop.y + normalizedY * crop.height,
-        z: outputData[idx + 2],
+        z: joints3D ? joints3D[i * 3 + 2] : 0,
         confidence: 0.9
       });
     }
