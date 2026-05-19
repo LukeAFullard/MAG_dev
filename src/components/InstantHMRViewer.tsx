@@ -232,24 +232,37 @@ export default function InstantHMRViewer() {
   // Detect person bounding box using lightweight detector
   const detectPerson = async (canvas: HTMLCanvasElement) => {
     const getFallbackCrop = () => {
-      const size = Math.min(canvas.width, canvas.height) * 0.7;
+      const size = Math.min(canvas.width, canvas.height) * 0.7 || 224;
       return {
-        x: (canvas.width - size) / 2,
-        y: (canvas.height - size) / 2,
+        x: (canvas.width - size) / 2 || 0,
+        y: (canvas.height - size) / 2 || 0,
         width: size,
         height: size,
         originalMaxDim: size
       };
     };
 
-    if (!detectorRef.current) {
+    if (!detectorRef.current || canvas.width === 0 || canvas.height === 0) {
       return getFallbackCrop();
     }
 
     try {
       // Use MediaPipe Pose for quick person detection
       return await new Promise((resolve) => {
+        let isResolved = false;
+        const timeoutId = setTimeout(() => {
+           if (!isResolved) {
+               isResolved = true;
+               console.warn('MediaPipe detection timed out! Using fallback.');
+               resolve(getFallbackCrop());
+           }
+        }, 1000); // 1 second timeout
+
         detectorRef.current.onResults((results: any) => {
+          if (isResolved) return;
+          clearTimeout(timeoutId);
+          isResolved = true;
+
           if (results.poseLandmarks && results.poseLandmarks.length > 0) {
             // Calculate bounding box from landmarks
             const landmarks = results.poseLandmarks;
@@ -281,21 +294,23 @@ export default function InstantHMRViewer() {
               originalMaxDim: maxDim
             });
           } else {
-             // Fallback
              resolve(getFallbackCrop());
           }
         });
 
         detectorRef.current.send({ image: canvas }).catch((err: any) => {
-            console.error('Detection send error:', err);
-            resolve(getFallbackCrop());
+            if (!isResolved) {
+                isResolved = true;
+                clearTimeout(timeoutId);
+                console.error('Detection send error:', err);
+                resolve(getFallbackCrop());
+            }
         });
       });
     } catch (err) {
       console.error('Detection error:', err);
     }
 
-    // Fallback
     return getFallbackCrop();
   };
 
@@ -322,17 +337,25 @@ export default function InstantHMRViewer() {
 
     if (video.readyState >= video.HAVE_CURRENT_DATA) {
       // Match canvas size to video ONLY if different to avoid costly reallocations
-      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      const vWidth = video.videoWidth || 640;
+      const vHeight = video.videoHeight || 480;
+
+      if (canvas.width !== vWidth || canvas.height !== vHeight) {
+        canvas.width = vWidth;
+        canvas.height = vHeight;
       }
-      if (overlay.width !== video.videoWidth || overlay.height !== video.videoHeight) {
-        overlay.width = video.videoWidth;
-        overlay.height = video.videoHeight;
+      if (overlay.width !== vWidth || overlay.height !== vHeight) {
+        overlay.width = vWidth;
+        overlay.height = vHeight;
       }
 
       // Draw video frame
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      } catch (err) {
+        // Ignore drawImage errors on bad frames
+        console.warn("Skipping bad frame:", err);
+      }
 
       try {
         setIsProcessing(true);
@@ -406,9 +429,8 @@ export default function InstantHMRViewer() {
     if (!recordedVideo || !sessionRef.current) return;
 
     setMode('analyzing');
-    setAnalysisProgress(0);
+    setAnalysisProgress(0.1); // Small non-zero value to hide the button immediately
     analyzedPosesRef.current = [];
-
     const video = document.createElement('video');
     video.src = recordedVideo;
     video.muted = true;
