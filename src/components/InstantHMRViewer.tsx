@@ -308,14 +308,14 @@ export default function InstantHMRViewer() {
 
   // Process video frame and detect pose
   const processFrame = async (sourceVideo?: HTMLVideoElement) => {
-    if (!videoRef.current || !canvasRef.current || !overlayRef.current) {
+    const video = sourceVideo || videoRef.current;
+    if (!video || !canvasRef.current || !overlayRef.current) {
       if (modeRef.current === 'live' || modeRef.current === 'recording') {
         animationRef.current = requestAnimationFrame(() => processFrame(sourceVideo));
       }
       return;
     }
 
-    const video = sourceVideo || videoRef.current;
     const canvas = canvasRef.current;
     const overlay = overlayRef.current;
     const ctx = canvas.getContext('2d');
