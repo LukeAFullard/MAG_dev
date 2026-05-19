@@ -632,11 +632,22 @@ export default function InstantHMRViewer() {
     const joints = [];
     const numJoints = 24;
 
-    const joints2D = results['joints_2d'] ? results['joints_2d'].data : null;
-    const joints3D = results['joints_3d'] ? results['joints_3d'].data : null;
+    let joints2D = results['joints_2d'] ? results['joints_2d'].data : null;
+    let joints3D = results['joints_3d'] ? results['joints_3d'].data : null;
+
+    // Fallbacks for different model export names
+    if (!joints2D) {
+      const keys = Object.keys(results);
+      if (keys.length > 3) {
+         joints2D = results[keys[3]].data;
+         joints3D = keys.length > 4 ? results[keys[4]].data : null;
+      } else if (keys.length > 0) {
+         joints2D = results[keys[0]].data;
+      }
+    }
 
     if (!joints2D) {
-       console.error("Could not find joints_2d in model output");
+       console.error("Could not find joints_2d in model output. Keys available:", Object.keys(results));
        return [];
     }
 
