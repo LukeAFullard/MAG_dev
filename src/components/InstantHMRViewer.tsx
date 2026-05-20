@@ -86,11 +86,14 @@ export default function InstantHMRViewer() {
   };
   const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [videoDimensions, setVideoDimensions] = useState({ width: 1280, height: 720 });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const playbackVideoRef = useRef<HTMLVideoElement | null>(null);
+  const analysisVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const tempCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<any>(null);
   const detectorRef = useRef<any>(null);
@@ -376,6 +379,11 @@ export default function InstantHMRViewer() {
       const vWidth = video.videoWidth || 640;
       const vHeight = video.videoHeight || 480;
 
+      // Update state if video dimensions changed
+      if (videoDimensions.width !== vWidth || videoDimensions.height !== vHeight) {
+        setVideoDimensions({ width: vWidth, height: vHeight });
+      }
+
       if (canvas.width !== vWidth || canvas.height !== vHeight) {
         canvas.width = vWidth;
         canvas.height = vHeight;
@@ -400,44 +408,63 @@ export default function InstantHMRViewer() {
         const inputTensor = await preprocessFrame(ctx, canvas);
 
         if (sessionRef.current && inputTensor) {
-          // Run inference
-          const feeds: any = { [sessionRef.current.inputNames[0]]: inputTensor };
+          let cliffCondTensor = null;
+          try {
+            // Run inference
+            const feeds: any = { [sessionRef.current.inputNames[0]]: inputTensor };
 
-          // Provide cliff_cond if the model expects it (e.g. [1, 3] tensor for center and scale)
-          if (sessionRef.current.inputNames.length > 1) {
-             const cliffCondName = sessionRef.current.inputNames[1];
-             const ort = (window as any).ort;
+            // Provide cliff_cond if the model expects it (e.g. [1, 3] tensor for center and scale)
+            if (sessionRef.current.inputNames.length > 1) {
+               const cliffCondName = sessionRef.current.inputNames[1];
+               const ort = (window as any).ort;
 
-             // Calculate center and scale exactly as worker.ts
-             const crop = detectedPersonRef.current || { x: 0, y: 0, width: canvas.width, height: canvas.height, originalMaxDim: Math.max(canvas.width, canvas.height) };
-             const cx = crop.x + crop.width / 2;
-             const cy = crop.y + crop.height / 2;
+               // Calculate center and scale exactly as worker.ts
+               const crop = detectedPersonRef.current || { x: 0, y: 0, width: canvas.width, height: canvas.height, originalMaxDim: Math.max(canvas.width, canvas.height) };
+               const cx = crop.x + crop.width / 2;
+               const cy = crop.y + crop.height / 2;
 
-             const cx_norm = 2.0 * (cx / canvas.width) - 1.0;
-             const cy_norm = 2.0 * (cy / canvas.height) - 1.0;
-             // originalMaxDim is max(bw, bh) before the 1.2x expand
-             const b_scale = crop.originalMaxDim / Math.max(canvas.width, canvas.height);
+               const cx_norm = 2.0 * (cx / canvas.width) - 1.0;
+               const cy_norm = 2.0 * (cy / canvas.height) - 1.0;
+               // originalMaxDim is max(bw, bh) before the 1.2x expand
+               const b_scale = crop.originalMaxDim / Math.max(canvas.width, canvas.height);
 
-             feeds[cliffCondName] = new ort.Tensor('float32', new Float32Array([cx_norm, cy_norm, b_scale]), [1, 3]);
-          }
+               cliffCondTensor = new ort.Tensor('float32', new Float32Array([cx_norm, cy_norm, b_scale]), [1, 3]);
+               feeds[cliffCondName] = cliffCondTensor;
+            }
 
-          const results = await sessionRef.current.run(feeds);
+            const results = await sessionRef.current.run(feeds);
 
-          // Extract joints from output
-          const joints = parseModelOutput(results, canvas.width, canvas.height);
+            // Extract joints from output
+            const joints = parseModelOutput(results, canvas.width, canvas.height);
 
-          // Draw skeleton overlay
-          drawSkeleton(octx, joints, canvas.width, canvas.height);
+            // Dispose result tensors to free WebGL/WebGPU memory
+            for (const key in results) {
+              if (results[key] && typeof results[key].dispose === 'function') {
+                results[key].dispose();
+              }
+            }
 
-          // Draw person bounding box
-          if (detectedPersonRef.current) {
-            octx.strokeStyle = 'rgba(100, 181, 246, 0.5)';
-            octx.lineWidth = 2;
-            octx.strokeRect(detectedPersonRef.current.x, detectedPersonRef.current.y, detectedPersonRef.current.width, detectedPersonRef.current.height);
-          }
+            // Draw skeleton overlay
+            drawSkeleton(octx, joints, canvas.width, canvas.height);
 
-          if (modeRef.current === 'analyzing') {
-            return joints;
+            // Draw person bounding box
+            if (detectedPersonRef.current) {
+              octx.strokeStyle = 'rgba(100, 181, 246, 0.5)';
+              octx.lineWidth = 2;
+              octx.strokeRect(detectedPersonRef.current.x, detectedPersonRef.current.y, detectedPersonRef.current.width, detectedPersonRef.current.height);
+            }
+
+            if (modeRef.current === 'analyzing') {
+              return joints;
+            }
+          } finally {
+            // Ensure inputs are always disposed
+            if (inputTensor && typeof inputTensor.dispose === 'function') {
+              inputTensor.dispose();
+            }
+            if (cliffCondTensor && typeof cliffCondTensor.dispose === 'function') {
+              cliffCondTensor.dispose();
+            }
           }
         }
 
@@ -462,21 +489,15 @@ export default function InstantHMRViewer() {
   // Analyze uploaded/recorded video
   const analyzeVideo = async () => {
     console.log("analyzeVideo called", { recordedVideo, hasSession: !!sessionRef.current });
-    if (!recordedVideo || !sessionRef.current) return;
+    if (!recordedVideo || !sessionRef.current || !analysisVideoRef.current) return;
 
     setMode('analyzing');
     setAnalysisProgress(0.1); // Small non-zero value to hide the button immediately
     analyzedPosesRef.current = [];
-    const video = document.createElement('video');
+    const video = analysisVideoRef.current;
     video.src = recordedVideo;
     video.muted = true;
     video.playsInline = true;
-
-    // Mount to DOM to force the browser to render frames, preventing requestVideoFrameCallback deadlocks
-    video.style.position = 'absolute';
-    video.style.opacity = '0';
-    video.style.pointerEvents = 'none';
-    document.body.appendChild(video);
 
     console.log("Waiting for onloadedmetadata");
     await new Promise(resolve => {
@@ -484,7 +505,6 @@ export default function InstantHMRViewer() {
       // also handle errors just in case
       video.onerror = (e) => {
           console.error("Video error in analyzeVideo:", e);
-          document.body.removeChild(video);
           resolve(e);
       };
     });
@@ -494,9 +514,9 @@ export default function InstantHMRViewer() {
     // Some browsers return Infinity or NaN for blob URL durations
     let duration = video.duration;
     if (!isFinite(duration) || isNaN(duration)) {
-        console.warn("Duration is not finite, setting to 1 second for test");
+        console.warn("Duration is not finite, forcing fallback logic");
         // Fallback for MediaRecorder blobs in some browsers
-        video.currentTime = 1e9;
+        video.currentTime = 10000;
         await new Promise(r => { video.onseeked = r; });
         duration = video.currentTime;
         video.currentTime = 0;
@@ -506,7 +526,6 @@ export default function InstantHMRViewer() {
 
     if (duration === 0 || !isFinite(duration)) {
        console.error("Could not determine duration, aborting analysis");
-       document.body.removeChild(video);
        setMode('live');
        return;
     }
@@ -575,8 +594,9 @@ export default function InstantHMRViewer() {
       setAnalysisProgress((time / duration) * 100);
     }
 
-    // Cleanup DOM
-    document.body.removeChild(video);
+    // Reset video source after analysis
+    video.src = '';
+    video.removeAttribute('src');
 
     setAnalysisProgress(100);
     setMode('playback');
@@ -669,10 +689,14 @@ export default function InstantHMRViewer() {
       const bbox = await detectPerson(canvas) as any;
       detectedPersonRef.current = bbox;
 
-      // Create offscreen canvas for preprocessing
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = modelSize;
-      tempCanvas.height = modelSize;
+      // Create offscreen canvas for preprocessing (reuse ref to prevent GC memory leaks)
+      if (!tempCanvasRef.current) {
+        tempCanvasRef.current = document.createElement('canvas');
+        tempCanvasRef.current.width = modelSize;
+        tempCanvasRef.current.height = modelSize;
+      }
+
+      const tempCanvas = tempCanvasRef.current;
       const tempCtx = tempCanvas.getContext('2d');
       if (!tempCtx) return null;
 
@@ -839,6 +863,24 @@ export default function InstantHMRViewer() {
       }
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+      }
+
+      // Release ONNX session and detector
+      if (sessionRef.current) {
+        try {
+          sessionRef.current.release();
+        } catch (e) {
+          console.warn('Error releasing ONNX session:', e);
+        }
+        sessionRef.current = null;
+      }
+      if (detectorRef.current) {
+        try {
+          detectorRef.current.close();
+        } catch (e) {
+          console.warn('Error closing MediaPipe detector:', e);
+        }
+        detectorRef.current = null;
       }
     };
   }, []);
@@ -1272,7 +1314,8 @@ export default function InstantHMRViewer() {
           overflow: 'hidden',
           border: '2px solid rgba(0, 255, 136, 0.3)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-          background: '#000'
+          background: '#000',
+          aspectRatio: `${videoDimensions.width} / ${videoDimensions.height}`
         }}>
           {/* Hidden video element */}
           <video
@@ -1280,8 +1323,7 @@ export default function InstantHMRViewer() {
             style={{
               display: mode === 'live' || mode === 'recording' ? 'block' : 'none',
               width: '100%',
-              height: 'auto',
-              maxHeight: '70vh',
+              height: '100%',
               objectFit: 'contain'
             }}
             autoPlay
@@ -1297,14 +1339,26 @@ export default function InstantHMRViewer() {
             muted
           />
 
+          {/* Hidden analysis video element */}
+          <video
+            ref={analysisVideoRef}
+            style={{
+              position: 'absolute',
+              opacity: '0',
+              pointerEvents: 'none'
+            }}
+            playsInline
+            muted
+          />
+
           {/* Canvas for video rendering */}
           <canvas
             ref={canvasRef}
             style={{
               display: mode === 'live' || mode === 'recording' ? 'none' : 'block',
               width: '100%',
-              height: 'auto',
-              maxHeight: '70vh'
+              height: '100%',
+              objectFit: 'contain'
             }}
           />
 
