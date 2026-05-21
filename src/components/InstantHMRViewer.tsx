@@ -534,6 +534,7 @@ export default function InstantHMRViewer() {
     const frameInterval = 1 / frameRate;
 
     for (let time = 0; time < duration; time += frameInterval) {
+      let paintedTime = video.currentTime;
       if (Math.abs(video.currentTime - time) > 0.01) {
         video.currentTime = time;
         await new Promise(resolve => {
@@ -541,8 +542,9 @@ export default function InstantHMRViewer() {
              video.removeEventListener('seeked', handler);
              // Wait for the next paint frame so the video element actually displays the seeked frame
              if ('requestVideoFrameCallback' in video) {
-                 (video as any).requestVideoFrameCallback(() => resolve(true));
+                 (video as any).requestVideoFrameCallback((_now: any, metadata: any) => { paintedTime = metadata.mediaTime; resolve(true); });
              } else {
+                 paintedTime = (video as HTMLVideoElement).currentTime;
                  requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
              }
           };
@@ -556,8 +558,9 @@ export default function InstantHMRViewer() {
         // Even for time 0, ensure it's painted
         await new Promise(resolve => {
              if ('requestVideoFrameCallback' in video) {
-                 (video as any).requestVideoFrameCallback(() => resolve(true));
+                 (video as any).requestVideoFrameCallback((_now: any, metadata: any) => { paintedTime = metadata.mediaTime; resolve(true); });
              } else {
+                 paintedTime = (video as HTMLVideoElement).currentTime;
                  requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
              }
         });
@@ -584,7 +587,7 @@ export default function InstantHMRViewer() {
       // Pass video directly for processing
       const joints = await processFrame(video);
       // Use the actual current time from the video, as keyframes might snap it slightly off nominal time
-      const actualTime = video.currentTime;
+      const actualTime = paintedTime;
       console.log("Analyzing nominal time", time, "actual time", actualTime, "got joints?", !!joints);
       if (joints) {
         analyzedPosesRef.current.push({ time: actualTime, joints });
@@ -626,7 +629,7 @@ export default function InstantHMRViewer() {
       playbackVideo.play().catch(e => console.error("Playback failed", e));
     };
 
-    const drawFrame = () => {
+    const drawFrame = (_now?: any, metadata?: any) => {
       if (modeRef.current !== 'playback') {
         playbackVideo.pause();
         return;
@@ -636,7 +639,7 @@ export default function InstantHMRViewer() {
         ctx.drawImage(playbackVideo, 0, 0, canvas.width, canvas.height);
 
         // Find closest pose
-        const currentTime = playbackVideo.currentTime;
+        const currentTime = metadata && metadata.mediaTime !== undefined ? metadata.mediaTime : playbackVideo.currentTime;
         const poses = analyzedPosesRef.current;
 
         let closestPose = null;
@@ -657,17 +660,29 @@ export default function InstantHMRViewer() {
       }
 
       if (!playbackVideo.paused && !playbackVideo.ended) {
-        requestAnimationFrame(drawFrame);
+        if ('requestVideoFrameCallback' in playbackVideo) {
+           (playbackVideo as any).requestVideoFrameCallback(drawFrame);
+        } else {
+           requestAnimationFrame(() => drawFrame());
+        }
       } else if (playbackVideo.ended) {
          // Stop when ended
       } else {
-        requestAnimationFrame(drawFrame);
+        if ('requestVideoFrameCallback' in playbackVideo) {
+           (playbackVideo as any).requestVideoFrameCallback(drawFrame);
+        } else {
+           requestAnimationFrame(() => drawFrame());
+        }
       }
     };
 
     playbackVideo.onplay = () => {
       setIsPlaying(true);
-      drawFrame();
+      if ('requestVideoFrameCallback' in playbackVideo) {
+         (playbackVideo as any).requestVideoFrameCallback(drawFrame);
+      } else {
+         requestAnimationFrame(() => drawFrame());
+      }
     };
 
     playbackVideo.onpause = () => {
